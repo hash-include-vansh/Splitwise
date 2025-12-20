@@ -22,7 +22,7 @@ export default async function LoginPage() {
             <Wallet className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
-            Splitwise
+            SplitKaroBhai
           </h1>
           <p className="text-base font-medium text-gray-600">
             Split expenses with friends, roommates, and travel groups

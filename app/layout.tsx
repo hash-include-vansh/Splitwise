@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Splitwise - Split expenses with friends",
+  title: "SplitKaroBhai - Split expenses with friends",
   description: "Split expenses with friends, roommates, and travel groups",
 };
 

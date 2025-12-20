@@ -11,7 +11,7 @@ export function Navbar() {
             className="text-2xl font-black text-gray-900 tracking-tight hover:opacity-80 transition-opacity"
             style={{ letterSpacing: '-0.03em' }}
           >
-            Splitwise
+            SplitKaroBhai
           </Link>
           <UserMenu />
         </div>
