@@ -7,15 +7,17 @@ import {
   calculateSimplifiedBalances,
   calculateNetBalances,
 } from '@/lib/services/balances-client'
-import { BalanceList } from '@/components/balances/BalanceList'
 import { SimplifiedDebtToggle } from '@/components/balances/SimplifiedDebtToggle'
 import { SimplifiedDebtView } from '@/components/balances/SimplifiedDebtView'
+import { RawBalanceView } from '@/components/balances/RawBalanceView'
+import { useAuth } from '@/hooks/useAuth'
 import type { RawBalance, SimplifiedDebt, UserNetBalance } from '@/lib/types'
 import Link from 'next/link'
 
 export default function BalancesPage() {
   const params = useParams()
   const groupId = params.groupId as string
+  const { user, loading: authLoading } = useAuth()
   const [simplified, setSimplified] = useState(false)
   const [rawBalances, setRawBalances] = useState<RawBalance[]>([])
   const [simplifiedDebts, setSimplifiedDebts] = useState<SimplifiedDebt[]>([])
@@ -61,7 +63,7 @@ export default function BalancesPage() {
     fetchBalances()
   }, [groupId])
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">Loading balances...</div>
@@ -97,8 +99,11 @@ export default function BalancesPage() {
         <SimplifiedDebtView debts={simplifiedDebts} />
       ) : (
         <div>
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">Net Balances</h2>
-          <BalanceList balances={netBalances} />
+          <h2 className="mb-4 text-xl font-semibold text-gray-900">Raw Balances</h2>
+          <p className="mb-4 text-sm text-gray-600">
+            Shows who owes whom based on all expenses
+          </p>
+          <RawBalanceView balances={rawBalances} currentUserId={user?.id} />
         </div>
       )}
     </div>

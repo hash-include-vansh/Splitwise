@@ -27,8 +27,9 @@ export async function calculateRawBalances(
     return { data: null, error: expensesError }
   }
 
-  // Calculate balances: payer is credited, others owe
-  const balances: Map<string, Map<string, number>> = new Map()
+  // Calculate raw balances: track all pairwise debts from each expense
+  // This shows who owes whom from each individual expense
+  const rawBalancesMap = new Map<string, Map<string, number>>() // from_user_id -> to_user_id -> amount
 
   expenses?.forEach((expense: any) => {
     const payerId = expense.paid_by
@@ -44,36 +45,27 @@ export async function calculateRawBalances(
       }
 
       // Initialize maps if needed
-      if (!balances.has(payerId)) {
-        balances.set(payerId, new Map())
-      }
-      if (!balances.has(oweId)) {
-        balances.set(oweId, new Map())
+      if (!rawBalancesMap.has(oweId)) {
+        rawBalancesMap.set(oweId, new Map())
       }
 
-      const payerBalances = balances.get(payerId)!
-      const oweBalances = balances.get(oweId)!
-
-      // Payer is owed money (positive)
-      const currentPayer = payerBalances.get(oweId) || 0
-      payerBalances.set(oweId, currentPayer + amount)
-
-      // Owe person owes money (negative)
-      const currentOwe = oweBalances.get(payerId) || 0
-      oweBalances.set(payerId, currentOwe - amount)
+      const oweBalances = rawBalancesMap.get(oweId)!
+      
+      // Track that oweId owes payerId this amount
+      const currentAmount = oweBalances.get(payerId) || 0
+      oweBalances.set(payerId, currentAmount + amount)
     })
   })
 
   // Convert to RawBalance array
   const rawBalances: RawBalance[] = []
-  balances.forEach((oweMap, fromUserId) => {
-    oweMap.forEach((amount, toUserId) => {
-      if (Math.abs(amount) > 0.01) {
-        // Only include non-zero balances
+  rawBalancesMap.forEach((toUserMap, fromUserId) => {
+    toUserMap.forEach((amount, toUserId) => {
+      if (amount > 0.01) {
         rawBalances.push({
           from_user_id: fromUserId,
           to_user_id: toUserId,
-          amount: Math.round((Math.abs(amount) + Number.EPSILON) * 100) / 100,
+          amount: Math.round((amount + Number.EPSILON) * 100) / 100,
         })
       }
     })
@@ -87,6 +79,7 @@ export async function calculateRawBalances(
   })
 
   if (userIds.size > 0) {
+    const supabase = createClient()
     const { data: users } = await supabase
       .from('users')
       .select('*')
@@ -164,20 +157,31 @@ export async function calculateNetBalances(
   }
 
   // Calculate net balance per user
+  // Rule: Never include "owes to self" - a person's own share doesn't affect their net balance
   const netBalances: Map<string, number> = new Map()
 
   expenses?.forEach((expense: any) => {
     const payerId = expense.paid_by
     const splits = expense.splits || []
 
-    // Payer is credited with full amount
-    const currentPayer = netBalances.get(payerId) || 0
-    netBalances.set(payerId, currentPayer + expense.amount)
+    // Calculate what others owe the payer (excluding payer's own share)
+    const othersOwe = splits
+      .filter((split: any) => split.user_id !== payerId)
+      .reduce((sum: number, split: any) => sum + split.owed_amount, 0)
 
-    // Others owe their split amounts
+    // Payer is credited with what others owe them (not the full amount)
+    const currentPayer = netBalances.get(payerId) || 0
+    netBalances.set(payerId, currentPayer + othersOwe)
+
+    // Subtract what each person owes (excluding payer's own share)
     splits.forEach((split: any) => {
       const oweId = split.user_id
       const amount = split.owed_amount
+
+      // Skip if person owes themselves (their own share)
+      if (payerId === oweId) {
+        return
+      }
 
       const currentOwe = netBalances.get(oweId) || 0
       netBalances.set(oweId, currentOwe - amount)
