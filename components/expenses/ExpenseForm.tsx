@@ -132,12 +132,11 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
         return
       }
 
-      // Success - redirect to expenses list
-      router.push(`/groups/${groupId}/expenses`)
-      router.refresh()
+      // Success - redirect to expenses list immediately
+      // Use window.location for reliable redirect
+      window.location.href = `/groups/${groupId}/expenses`
     } catch (err) {
       setError('An unexpected error occurred')
-    } finally {
       setLoading(false)
     }
   }

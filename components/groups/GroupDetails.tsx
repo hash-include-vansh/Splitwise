@@ -1,5 +1,6 @@
 import { InviteMember } from './InviteMember'
 import { MemberList } from './MemberList'
+import { DeleteGroupButton } from './DeleteGroupButton'
 import Link from 'next/link'
 import type { Group, GroupMember } from '@/lib/types'
 
@@ -16,11 +17,16 @@ export function GroupDetails({ group, currentUserId, onRemoveMember }: GroupDeta
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
-        <p className="mt-2 text-sm text-gray-500">
-          Created {new Date(group.created_at).toLocaleDateString()}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Created {new Date(group.created_at).toLocaleDateString()}
+          </p>
+        </div>
+        {isAdmin && (
+          <DeleteGroupButton groupId={group.id} groupName={group.name} />
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
