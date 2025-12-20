@@ -1,0 +1,89 @@
+# Expense Splitter
+
+A web application for splitting expenses among groups of users, inspired by Splitwise but without artificial limits.
+
+## Features
+
+- Google OAuth authentication
+- Group creation and member management via invite links
+- Expense creation with multiple split types (equal, unequal, percentage, share-based)
+- Dynamic balance computation (raw and simplified debt)
+- Unlimited expenses, groups, and users
+
+## Tech Stack
+
+- **Frontend**: Next.js 14+ (App Router), React, Tailwind CSS, React Query
+- **Backend**: Supabase (Auth, PostgreSQL, RLS)
+- **Hosting**: Vercel (frontend), Supabase (backend)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Supabase account
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+   Fill in your Supabase URL and anon key.
+
+4. Set up Supabase:
+   - Create a new Supabase project
+   - Run the SQL scripts in `supabase/schema.sql` to create tables
+   - Run the SQL scripts in `supabase/rls_policies.sql` to set up RLS policies
+   - Configure Google OAuth in Supabase dashboard
+
+5. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Testing
+
+Run tests:
+```bash
+npm test
+```
+
+## Database Schema
+
+The application uses the following tables:
+- `users` - User profiles
+- `groups` - Expense groups
+- `group_members` - User-group relationships with roles
+- `expenses` - Expense records
+- `expense_splits` - Per-user split amounts
+- `group_invites` - Invite tokens for group joining
+
+See `documentation/DDS.md` for detailed schema documentation.
+
+## Project Structure
+
+```
+/app              - Next.js app router pages
+/components       - React components
+/lib
+  /services       - Business logic and API calls
+  /utils          - Utility functions
+  /types          - TypeScript type definitions
+  /queries        - React Query setup
+/hooks            - Custom React hooks
+/supabase         - Database schema and migrations
+```
+
+## License
+
+MIT
+
