@@ -107,11 +107,32 @@ export function validateSplits(amount: number, splits: ExpenseSplit[]): {
   valid: boolean
   error?: string
 } {
-  const total = splits.reduce((sum, split) => sum + split.owed_amount, 0)
+  // Remove any duplicates by user_id (in case of race conditions)
+  const uniqueSplits = splits.reduce((acc, split) => {
+    const existing = acc.find(s => s.user_id === split.user_id)
+    if (!existing) {
+      acc.push(split)
+    } else {
+      // If duplicate found, use the first one
+      console.warn('Duplicate split found for user:', split.user_id)
+    }
+    return acc
+  }, [] as ExpenseSplit[])
+  
+  const total = uniqueSplits.reduce((sum, split) => sum + split.owed_amount, 0)
   const difference = Math.abs(total - amount)
   
   // Allow small rounding differences (0.01)
   if (difference > 0.01) {
+    console.error('Split validation error:', {
+      amount,
+      total,
+      difference,
+      splitsCount: splits.length,
+      uniqueSplitsCount: uniqueSplits.length,
+      splits: splits.map(s => ({ userId: s.user_id, owed: s.owed_amount })),
+      uniqueSplits: uniqueSplits.map(s => ({ userId: s.user_id, owed: s.owed_amount })),
+    })
     return {
       valid: false,
       error: `Split total (${total.toFixed(2)}) does not match expense amount (${amount.toFixed(2)})`,

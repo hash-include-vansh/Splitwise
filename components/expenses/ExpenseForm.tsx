@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createExpense } from '@/lib/services/expenses-client'
 import { SplitTypeSelector } from './SplitTypeSelector'
@@ -26,31 +26,55 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
   const [error, setError] = useState<string | null>(null)
 
   const availableMembers = members.filter((m) => !excludedMembers.includes(m.user_id))
+  // Use string comparison for stable dependencies to prevent infinite loops
+  const memberIdsStr = useMemo(() => members.map((m) => m.user_id).sort().join(','), [members])
+  const availableMemberIdsStr = useMemo(() => availableMembers.map((m) => m.user_id).sort().join(','), [availableMembers])
+  const initializedSplitType = useRef<string | null>(null)
 
   useEffect(() => {
-    // Initialize split config based on type
-    if (splitType === 'equal' && availableMembers.length > 0) {
-      setSplitConfig({ memberIds: availableMembers.map((m) => m.user_id) })
+    // Only initialize once per split type change, not on every render
+    if (initializedSplitType.current === splitType) {
+      return
+    }
+    
+    initializedSplitType.current = splitType
+    
+    // Initialize split config based on type - include all members, not just available ones
+    const memberIdArray = members.map((m) => m.user_id)
+    const availableMemberIdArray = availableMembers.map((m) => m.user_id)
+    
+    if (splitType === 'equal' && availableMemberIdArray.length > 0) {
+      setSplitConfig({ memberIds: availableMemberIdArray })
     } else if (splitType === 'unequal') {
-      setSplitConfig({
-        amounts: Object.fromEntries(
-          availableMembers.map((m) => [m.user_id, ''])
-        ),
+      setSplitConfig((prevConfig: any) => {
+        const existingAmounts = prevConfig?.amounts || {}
+        return {
+          amounts: Object.fromEntries(
+            memberIdArray.map((id) => [id, existingAmounts[id] !== undefined ? existingAmounts[id] : ''])
+          ),
+        }
       })
     } else if (splitType === 'percentage') {
-      setSplitConfig({
-        percentages: Object.fromEntries(
-          availableMembers.map((m) => [m.user_id, ''])
-        ),
+      setSplitConfig((prevConfig: any) => {
+        const existingPercentages = prevConfig?.percentages || {}
+        return {
+          percentages: Object.fromEntries(
+            memberIdArray.map((id) => [id, existingPercentages[id] !== undefined ? existingPercentages[id] : ''])
+          ),
+        }
       })
     } else if (splitType === 'shares') {
-      setSplitConfig({
-        shares: Object.fromEntries(
-          availableMembers.map((m) => [m.user_id, '1'])
-        ),
+      setSplitConfig((prevConfig: any) => {
+        const existingShares = prevConfig?.shares || {}
+        return {
+          shares: Object.fromEntries(
+            memberIdArray.map((id) => [id, existingShares[id] !== undefined ? existingShares[id] : '1'])
+          ),
+        }
       })
     }
-  }, [splitType, availableMembers])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [splitType, memberIdsStr])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,23 +98,47 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
     } else if (splitType === 'unequal') {
       const amounts = splitConfig.amounts || {}
       splits = Object.entries(amounts)
-        .filter(([_, val]) => val !== '' && !isNaN(parseFloat(val as string)))
+        .filter(([userId, val]) => 
+          !excludedMembers.includes(userId) && 
+          val !== '' && 
+          !isNaN(parseFloat(val as string))
+        )
         .map(([userId, val]) => ({
           user_id: userId,
           owed_amount: parseFloat(val as string),
         }))
     } else if (splitType === 'percentage') {
       const percentages = splitConfig.percentages || {}
+      // Filter and calculate splits for non-excluded members only
       splits = Object.entries(percentages)
-        .filter(([_, val]) => val !== '' && !isNaN(parseFloat(val as string)))
-        .map(([userId, val]) => ({
-          user_id: userId,
-          owed_amount: (amountNum * parseFloat(val as string)) / 100,
-        }))
+        .filter(([userId, val]) => {
+          const isExcluded = excludedMembers.includes(userId)
+          const hasValue = val !== '' && val !== null && val !== undefined
+          const isValidNumber = !isNaN(parseFloat(String(val)))
+          return !isExcluded && hasValue && isValidNumber
+        })
+        .map(([userId, val]) => {
+          const percentageValue = parseFloat(String(val))
+          // Ensure percentage is between 0 and 100, not a calculated amount
+          // If the value is > 100, it might be stored as an amount, so we need to recalculate
+          let percentage = percentageValue
+          if (percentageValue > 100 && amountNum > 0) {
+            // This might be stored as an amount, convert back to percentage
+            percentage = (percentageValue / amountNum) * 100
+          }
+          const owedAmount = Math.round((amountNum * percentage / 100 + Number.EPSILON) * 100) / 100
+          return {
+            user_id: userId,
+            owed_amount: owedAmount,
+          }
+        })
     } else if (splitType === 'shares') {
       const shares = splitConfig.shares || {}
       const shareEntries = Object.entries(shares).filter(
-        ([_, val]) => val !== '' && !isNaN(parseFloat(val as string))
+        ([userId, val]) => 
+          !excludedMembers.includes(userId) && 
+          val !== '' && 
+          !isNaN(parseFloat(val as string))
       )
       const totalShares = shareEntries.reduce(
         (sum, [_, val]) => sum + parseFloat(val as string),
@@ -103,14 +151,15 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
     }
 
     // Validate splits
+    if (splits.length === 0) {
+      setError('At least one member must be included in the split')
+      return
+    }
+    
+    // Validate splits (validation function handles duplicates internally)
     const validation = validateSplits(amountNum, splits)
     if (!validation.valid) {
       setError(validation.error || 'Invalid split configuration')
-      return
-    }
-
-    if (splits.length === 0) {
-      setError('At least one member must be included in the split')
       return
     }
 
@@ -199,7 +248,7 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
       <SplitConfigurator
         splitType={splitType}
         amount={parseFloat(amount) || 0}
-        members={availableMembers}
+        members={members}
         config={splitConfig}
         onConfigChange={setSplitConfig}
         excludedMembers={excludedMembers}

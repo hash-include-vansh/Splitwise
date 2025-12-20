@@ -47,8 +47,12 @@ export function SplitConfigurator({
   }
 
   const calculatePreview = (userId: string) => {
+    const isExcluded = excludedMembers.includes(userId)
+    if (isExcluded) return '0.00'
+    
     if (splitType === 'equal') {
-      return amount > 0 ? (amount / members.length).toFixed(2) : '0.00'
+      const availableCount = members.filter(m => !excludedMembers.includes(m.user_id)).length
+      return amount > 0 && availableCount > 0 ? (amount / availableCount).toFixed(2) : '0.00'
     } else if (splitType === 'unequal') {
       const val = config.amounts?.[userId]
       return val && !isNaN(parseFloat(val)) ? parseFloat(val).toFixed(2) : '0.00'
@@ -59,8 +63,9 @@ export function SplitConfigurator({
         : '0.00'
     } else if (splitType === 'shares') {
       const shares = config.shares || {}
+      // Only count non-excluded members' shares
       const shareEntries = Object.entries(shares).filter(
-        ([_, val]) => val !== '' && !isNaN(parseFloat(val as string))
+        ([id, val]) => !excludedMembers.includes(id) && val !== '' && !isNaN(parseFloat(val as string))
       )
       const totalShares = shareEntries.reduce(
         (sum, [_, val]) => sum + parseFloat(val as string),
@@ -78,19 +83,19 @@ export function SplitConfigurator({
     if (splitType === 'equal') {
       return amount.toFixed(2)
     } else if (splitType === 'unequal') {
-      const total = Object.values(config.amounts || {})
-        .filter((val) => val !== '' && !isNaN(parseFloat(val as string)))
-        .reduce((sum: number, val) => sum + parseFloat(val as string), 0)
+      const total = Object.entries(config.amounts || {})
+        .filter(([userId, val]) => !excludedMembers.includes(userId) && val !== '' && !isNaN(parseFloat(val as string)))
+        .reduce((sum: number, [_, val]) => sum + parseFloat(val as string), 0)
       return total.toFixed(2)
     } else if (splitType === 'percentage') {
-      const total = Object.values(config.percentages || {})
-        .filter((val) => val !== '' && !isNaN(parseFloat(val as string)))
-        .reduce((sum: number, val) => sum + parseFloat(val as string), 0)
+      const total = Object.entries(config.percentages || {})
+        .filter(([userId, val]) => !excludedMembers.includes(userId) && val !== '' && !isNaN(parseFloat(val as string)))
+        .reduce((sum: number, [_, val]) => sum + parseFloat(val as string), 0)
       return `${total.toFixed(1)}%`
     } else if (splitType === 'shares') {
-      const total = Object.values(config.shares || {})
-        .filter((val) => val !== '' && !isNaN(parseFloat(val as string)))
-        .reduce((sum: number, val) => sum + parseFloat(val as string), 0)
+      const total = Object.entries(config.shares || {})
+        .filter(([userId, val]) => !excludedMembers.includes(userId) && val !== '' && !isNaN(parseFloat(val as string)))
+        .reduce((sum: number, [_, val]) => sum + parseFloat(val as string), 0)
       return total.toFixed(0)
     }
     return '0.00'
@@ -111,7 +116,7 @@ export function SplitConfigurator({
               <div
                 key={member.user_id}
                 className={`flex items-center gap-3 rounded-lg border p-3 ${
-                  isExcluded ? 'border-gray-200 bg-gray-50 opacity-50' : 'border-gray-200 bg-white'
+                  isExcluded ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-200 bg-white'
                 }`}
               >
                 <input
@@ -121,8 +126,9 @@ export function SplitConfigurator({
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <div className="flex-1">
-                  <div className="font-medium text-sm">
+                  <div className={`font-medium text-sm ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
                     {user?.name || user?.email || 'Unknown'}
+                    {isExcluded && ' (excluded)'}
                   </div>
                   {splitType === 'unequal' && (
                     <input
@@ -132,7 +138,7 @@ export function SplitConfigurator({
                       disabled={isExcluded}
                       min="0"
                       step="0.01"
-                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100"
+                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="0.00"
                     />
                   )}
@@ -145,7 +151,7 @@ export function SplitConfigurator({
                       min="0"
                       max="100"
                       step="0.1"
-                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100"
+                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="0"
                     />
                   )}
@@ -157,13 +163,13 @@ export function SplitConfigurator({
                       disabled={isExcluded}
                       min="0"
                       step="0.1"
-                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100"
+                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="1"
                     />
                   )}
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className={`text-sm font-medium ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
                     ₹{calculatePreview(member.user_id)}
                   </div>
                   {splitType === 'percentage' && (

@@ -2,29 +2,16 @@
 
 import { createClient } from '@/lib/supabase/client'
 import type { Expense, CreateExpenseData } from '@/lib/types'
-import { normalizeSplits, validateSplits } from '@/lib/utils/splitCalculations'
+import { validateSplits } from '@/lib/utils/splitCalculations'
 
 export async function createExpense(
   data: CreateExpenseData
 ): Promise<{ data: Expense | null; error: Error | null }> {
   const supabase = createClient()
 
-  // Normalize splits based on type
-  const splits = normalizeSplits(data.split_type, data.amount, {
-    memberIds: data.splits.map((s) => s.user_id),
-    amounts: data.split_type === 'unequal'
-      ? Object.fromEntries(data.splits.map((s) => [s.user_id, s.owed_amount]))
-      : undefined,
-    percentages:
-      data.split_type === 'percentage'
-        ? Object.fromEntries(data.splits.map((s) => [s.user_id, s.owed_amount]))
-        : undefined,
-    shares:
-      data.split_type === 'shares'
-        ? Object.fromEntries(data.splits.map((s) => [s.user_id, s.owed_amount]))
-        : undefined,
-    excludedIds: data.excluded_members,
-  })
+  // All splits are already calculated correctly in the form, use them directly
+  // No need to re-normalize as that was causing issues (e.g., treating calculated amounts as percentages)
+  const splits = data.splits
 
   // Validate splits
   const validation = validateSplits(data.amount, splits)

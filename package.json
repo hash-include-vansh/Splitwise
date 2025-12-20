@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "fix-build": "rm -rf .next && npm run build",
+    "dev:clean": "rm -rf .next && npm run dev"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
