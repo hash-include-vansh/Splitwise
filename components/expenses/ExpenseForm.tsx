@@ -202,8 +202,8 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="e.g., Dinner at restaurant"
+          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
+          placeholder="e.g., Pizza night, Uber ride, Coffee break..."
         />
       </div>
 
@@ -219,8 +219,8 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
           required
           min="0.01"
           step="0.01"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="0.00"
+          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
+          placeholder="Enter amount"
         />
       </div>
 
@@ -233,7 +233,7 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
           value={paidBy}
           onChange={(e) => setPaidBy(e.target.value)}
           required
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
         >
           {members.map((member) => (
             <option key={member.user_id} value={member.user_id}>
@@ -256,21 +256,28 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
       />
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200/60 p-4 text-sm text-red-700 shadow-soft">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+          </div>
+        </div>
       )}
 
       <div className="flex gap-3">
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all active:scale-95"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading || !description.trim() || !amount}
-          className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:from-gray-900 hover:to-black hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
         >
           {loading ? 'Creating...' : 'Create Expense'}
         </button>

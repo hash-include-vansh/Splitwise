@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Providers } from "./providers";
 
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
 export const metadata: Metadata = {
-  title: "Expense Splitter",
+  title: "Splitwise - Split expenses with friends",
   description: "Split expenses with friends, roommates, and travel groups",
 };
 
@@ -14,11 +21,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gray-50">
+    <html lang="en" className={inter.variable}>
+      <body className="min-h-screen bg-gradient-to-br from-white via-gray-50/50 to-gray-100/30 antialiased font-sans">
         <Providers>
           <Navbar />
-          {children}
+          <main className="pb-20 md:pb-8">{children}</main>
         </Providers>
       </body>
     </html>

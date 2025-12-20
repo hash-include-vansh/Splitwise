@@ -44,12 +44,15 @@ export default async function GroupDetailPage({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
       <Link
         href="/groups"
-        className="mb-4 inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+        className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors mb-4"
       >
-        ← Back to Groups
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to Groups
       </Link>
       <GroupDetails
         group={group}

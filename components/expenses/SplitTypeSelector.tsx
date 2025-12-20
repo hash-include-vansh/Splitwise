@@ -30,20 +30,24 @@ export function SplitTypeSelector({ value, onChange }: SplitTypeSelectorProps) {
       <label className="block text-sm font-medium text-gray-700 mb-2">
         Split Type
       </label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         {splitTypes.map((type) => (
           <button
             key={type.value}
             type="button"
             onClick={() => onChange(type.value)}
-            className={`rounded-lg border p-3 text-left transition-colors ${
+            className={`rounded-xl border-2 p-3 text-left transition-all ${
               value === type.value
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 bg-white hover:bg-gray-50'
+                ? 'border-gray-900 bg-gray-100 shadow-md'
+                : 'border-gray-300 bg-white hover:border-gray-500 hover:shadow-sm'
             }`}
           >
-            <div className="font-medium text-sm">{type.label}</div>
-            <div className="text-xs text-gray-500 mt-1">{type.description}</div>
+            <div className={`font-semibold text-sm ${value === type.value ? 'text-gray-900' : 'text-gray-900'}`}>
+              {type.label}
+            </div>
+            <div className={`text-xs mt-1 ${value === type.value ? 'text-gray-700' : 'text-gray-500'}`}>
+              {type.description}
+            </div>
           </button>
         ))}
       </div>

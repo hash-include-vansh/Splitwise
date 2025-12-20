@@ -43,14 +43,17 @@ export async function createGroup(name: string, userId: string): Promise<{ data:
   return { data: group as Group, error: null }
 }
 
-export async function getUserGroups(userId: string): Promise<{ data: Group[] | null; error: Error | null }> {
+export async function getUserGroups(userId: string): Promise<{ data: (Group & { created_by_user?: any })[] | null; error: Error | null }> {
   const supabase = await createClient()
   
   const { data, error } = await supabase
     .from('group_members')
     .select(`
       group_id,
-      groups (*)
+      groups (
+        *,
+        created_by_user:users!groups_created_by_fkey (*)
+      )
     `)
     .eq('user_id', userId)
 
@@ -58,7 +61,7 @@ export async function getUserGroups(userId: string): Promise<{ data: Group[] | n
     return { data: null, error }
   }
 
-  const groups = data?.map((item: any) => item.groups).filter(Boolean) as Group[] || []
+  const groups = data?.map((item: any) => item.groups).filter(Boolean) || []
   return { data: groups, error: null }
 }
 

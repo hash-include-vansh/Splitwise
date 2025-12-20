@@ -4,13 +4,14 @@ import { signOut, getCurrentUser } from '@/lib/services/auth'
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { Avatar } from '@/components/ui/Avatar'
+import { ChevronDown } from 'lucide-react'
 
 export function UserMenu() {
   const [user, setUser] = useState<User | null>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showMenu, setShowMenu] = useState(false)
-  const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
     async function fetchUser() {
@@ -59,33 +60,16 @@ export function UserMenu() {
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100"
+        className="flex items-center gap-3 rounded-2xl p-1.5 pr-3 transition-all hover:bg-gray-100/80 active:scale-95"
       >
-        {avatarUrl && !imageError ? (
-          <img
-            src={avatarUrl}
-            alt={displayName}
-            className="h-8 w-8 rounded-full object-cover"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm font-medium text-gray-700">
-            {displayName[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-          </div>
-        )}
-        <svg
-          className="h-4 w-4 text-gray-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <Avatar
+          src={avatarUrl}
+          alt={displayName}
+          name={displayName}
+          email={user.email}
+          size="sm"
+        />
+        <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform duration-200 ${showMenu ? 'rotate-180' : ''}`} />
       </button>
 
       {showMenu && (
@@ -94,16 +78,16 @@ export function UserMenu() {
             className="fixed inset-0 z-10"
             onClick={() => setShowMenu(false)}
           />
-          <div className="absolute right-0 z-20 mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">
-            <div className="px-4 py-3 border-b border-gray-200">
-              <p className="text-sm font-medium text-gray-900">
+          <div className="absolute right-0 z-20 mt-3 w-64 rounded-2xl bg-white shadow-xl overflow-hidden border border-gray-200/60">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              <p className="text-base font-bold text-gray-900 mb-0.5 tracking-tight" style={{ letterSpacing: '-0.01em' }}>
                 {displayName}
               </p>
-              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+              <p className="text-sm text-gray-500 truncate font-medium">{user.email}</p>
             </div>
             <button
               onClick={handleSignOut}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+              className="w-full px-5 py-4 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Sign out
             </button>

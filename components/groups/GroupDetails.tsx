@@ -3,6 +3,7 @@ import { MemberList } from './MemberList'
 import { DeleteGroupButton } from './DeleteGroupButton'
 import Link from 'next/link'
 import type { Group, GroupMember } from '@/lib/types'
+import { Receipt, TrendingUp, Users as UsersIcon } from 'lucide-react'
 
 interface GroupDetailsProps {
   group: Group & { members: GroupMember[] }
@@ -16,12 +17,18 @@ export function GroupDetails({ group, currentUserId, onRemoveMember }: GroupDeta
   )
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Created {new Date(group.created_at).toLocaleDateString()}
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
+            {group.name}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 font-medium">
+            Created {new Date(group.created_at).toLocaleDateString('en-US', { 
+              month: 'long', 
+              day: 'numeric', 
+              year: 'numeric' 
+            })}
           </p>
         </div>
         {isAdmin && (
@@ -29,32 +36,35 @@ export function GroupDetails({ group, currentUserId, onRemoveMember }: GroupDeta
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="flex gap-4">
         <Link
           href={`/groups/${group.id}/expenses`}
-          className="rounded-lg border border-gray-200 bg-white p-6 text-center transition-shadow hover:shadow-md"
+          className="group flex-1 rounded-xl border border-gray-200/60 bg-white p-5 text-center shadow-elegant transition-all hover:shadow-medium hover:border-gray-300/60"
         >
-          <h3 className="text-lg font-semibold text-gray-900">Expenses</h3>
-          <p className="mt-2 text-sm text-gray-600">View and manage expenses</p>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-gray-900 mb-3 group-hover:scale-105 transition-transform duration-200">
+            <Receipt className="h-6 w-6 text-white" />
+          </div>
+          <h3 className="text-base font-bold text-gray-900 mb-1 tracking-tight" style={{ letterSpacing: '-0.01em' }}>Expenses</h3>
+          <p className="text-xs font-medium text-gray-600">View and manage expenses</p>
         </Link>
         <Link
           href={`/groups/${group.id}/balances`}
-          className="rounded-lg border border-gray-200 bg-white p-6 text-center transition-shadow hover:shadow-md"
+          className="group flex-1 rounded-xl border border-gray-200/60 bg-white p-5 text-center shadow-elegant transition-all hover:shadow-medium hover:border-gray-300/60"
         >
-          <h3 className="text-lg font-semibold text-gray-900">Balances</h3>
-          <p className="mt-2 text-sm text-gray-600">View who owes what</p>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-gray-900 mb-3 group-hover:scale-105 transition-transform duration-200">
+            <TrendingUp className="h-6 w-6 text-white" />
+          </div>
+          <h3 className="text-base font-bold text-gray-900 mb-1 tracking-tight" style={{ letterSpacing: '-0.01em' }}>Balances</h3>
+          <p className="text-xs font-medium text-gray-600">View who owes what</p>
         </Link>
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900">Members</h3>
-          <p className="mt-2 text-sm text-gray-600">{group.members.length} members</p>
-        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
         <MemberList
           members={group.members}
           currentUserId={currentUserId}
           onRemoveMember={isAdmin ? onRemoveMember : undefined}
+          showHeader={true}
         />
         {isAdmin && <InviteMember groupId={group.id} />}
       </div>

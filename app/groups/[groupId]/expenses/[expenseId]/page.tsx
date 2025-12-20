@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { DeleteExpenseButton } from '@/components/expenses/DeleteExpenseButton'
 import { Avatar } from '@/components/ui/Avatar'
+import { Receipt, User, Users } from 'lucide-react'
 
 export default async function ExpenseDetailPage({
   params,
@@ -24,11 +25,13 @@ export default async function ExpenseDetailPage({
 
   if (error || !expense) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-gray-500">Expense not found</p>
-        <Link href={`/groups/${groupId}/expenses`} className="text-blue-600 hover:underline">
-          Back to Expenses
-        </Link>
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200/60 p-6 text-center">
+          <p className="text-gray-700 font-medium mb-3">Expense not found</p>
+          <Link href={`/groups/${groupId}/expenses`} className="text-gray-700 hover:text-gray-900 font-semibold transition-colors">
+            Back to Expenses
+          </Link>
+        </div>
       </div>
     )
   }
@@ -36,22 +39,31 @@ export default async function ExpenseDetailPage({
   const canDelete = expense.paid_by === user.id
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
       <div className="mb-6">
         <Link
           href={`/groups/${groupId}/expenses`}
-          className="text-sm text-gray-600 hover:text-gray-900"
+          className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
         >
-          ← Back to Expenses
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Expenses
         </Link>
       </div>
 
       <div className="max-w-2xl">
-        <div className="mb-6 flex items-start justify-between">
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{expense.description}</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              {new Date(expense.created_at).toLocaleDateString()}
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{expense.description}</h1>
+            <p className="mt-1.5 text-sm text-gray-500">
+              {new Date(expense.created_at).toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+              })}
             </p>
           </div>
           {canDelete && (
@@ -59,39 +71,48 @@ export default async function ExpenseDetailPage({
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border-2 border-gray-300 bg-white p-6 sm:p-8 shadow-xl">
           <div className="mb-6">
-            <div className="text-sm text-gray-500">Amount</div>
-            <div className="text-3xl font-bold text-gray-900 mt-1">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-2">
+              <Receipt className="h-4 w-4" />
+              Amount
+            </div>
+            <div className="text-3xl sm:text-4xl font-bold text-gray-900 mt-1">
               ₹{expense.amount.toFixed(2)}
             </div>
           </div>
 
           <div className="mb-6">
-            <div className="text-sm text-gray-500">Paid by</div>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-2">
+              <User className="h-4 w-4" />
+              Paid by
+            </div>
+            <div className="mt-1 flex items-center gap-3">
               <Avatar
                 src={expense.paid_by_user?.avatar_url}
                 alt={expense.paid_by_user?.name || 'User'}
                 name={expense.paid_by_user?.name}
                 email={expense.paid_by_user?.email}
-                size="sm"
+                size="md"
               />
-              <span className="font-medium text-gray-900">
+              <span className="font-semibold text-gray-900">
                 {expense.paid_by_user?.name || expense.paid_by_user?.email || 'Unknown'}
               </span>
             </div>
           </div>
 
           <div>
-            <div className="text-sm text-gray-500 mb-3">Split among</div>
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-500 mb-3">
+              <Users className="h-4 w-4" />
+              Split among
+            </div>
             <div className="space-y-2">
               {expense.splits?.map((split) => {
                 const splitUser = split.user
                 return (
                   <div
                     key={split.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 p-3"
+                    className="flex items-center justify-between rounded-xl border-2 border-gray-300 bg-white p-3 shadow-md hover:shadow-lg hover:border-gray-500 transition-all"
                   >
                     <div className="flex items-center gap-3">
                       <Avatar
@@ -101,11 +122,11 @@ export default async function ExpenseDetailPage({
                         email={splitUser?.email}
                         size="sm"
                       />
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-semibold text-gray-900">
                         {splitUser?.name || splitUser?.email || 'Unknown'}
                       </span>
                     </div>
-                    <div className="text-sm font-semibold text-gray-900">
+                    <div className="text-sm font-bold text-gray-900">
                       ₹{split.owed_amount.toFixed(2)}
                     </div>
                   </div>

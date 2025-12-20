@@ -115,15 +115,17 @@ export function SplitConfigurator({
             return (
               <div
                 key={member.user_id}
-                className={`flex items-center gap-3 rounded-lg border p-3 ${
-                  isExcluded ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-200 bg-white'
+                className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
+                  isExcluded 
+                    ? 'border-gray-300/60 bg-gradient-to-br from-gray-100 to-gray-200/50 opacity-60' 
+                    : 'border-gray-300 bg-white shadow-medium hover:shadow-large hover:border-gray-500'
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={!isExcluded}
                   onChange={() => handleExcludeToggle(member.user_id)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-500 focus:ring-offset-0"
                 />
                 <div className="flex-1">
                   <div className={`font-medium text-sm ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
@@ -138,8 +140,8 @@ export function SplitConfigurator({
                       disabled={isExcluded}
                       min="0"
                       step="0.01"
-                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      placeholder="0.00"
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      placeholder="Enter amount"
                     />
                   )}
                   {splitType === 'percentage' && (
@@ -151,8 +153,8 @@ export function SplitConfigurator({
                       min="0"
                       max="100"
                       step="0.1"
-                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      placeholder="0"
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      placeholder="Enter %"
                     />
                   )}
                   {splitType === 'shares' && (
@@ -163,8 +165,8 @@ export function SplitConfigurator({
                       disabled={isExcluded}
                       min="0"
                       step="0.1"
-                      className="mt-1 w-full rounded border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      placeholder="1"
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      placeholder="Enter shares"
                     />
                   )}
                 </div>
@@ -184,10 +186,10 @@ export function SplitConfigurator({
         </div>
       </div>
 
-      <div className="rounded-lg bg-gray-50 p-3">
-        <div className="flex justify-between text-sm">
-          <span className="font-medium text-gray-700">Total:</span>
-          <span className="font-semibold text-gray-900">
+          <div className="rounded-xl bg-gray-100 border-2 border-gray-400 p-4 shadow-md">
+        <div className="flex justify-between items-center text-sm">
+          <span className="font-semibold text-gray-700">Total:</span>
+          <span className="font-bold text-gray-900 text-lg">
             {splitType === 'percentage' || splitType === 'shares' ? getTotal() : `₹${getTotal()}`}
           </span>
         </div>
