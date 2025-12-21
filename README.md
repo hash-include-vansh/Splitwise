@@ -36,6 +36,26 @@ A web application for splitting expenses among groups of users, inspired by Spli
    cp .env.local.example .env.local
    ```
    Fill in your Supabase URL and anon key.
+   
+   **For Voice Commands (Mobile/iOS Support):**
+   To enable voice commands on iPhone Chrome and other mobile browsers, add at least one speech-to-text API key:
+   
+   **Option 1: AssemblyAI (Recommended - Free Tier Available)**
+   - Sign up at https://www.assemblyai.com/
+   - Get your API key from the dashboard
+   - Add to `.env.local`:
+     ```
+     ASSEMBLYAI_API_KEY=your_assemblyai_api_key_here
+     ```
+   
+   **Option 2: Google Cloud Speech-to-Text**
+   - Enable Speech-to-Text API in Google Cloud Console
+   - Create credentials and get API key
+   - Add to `.env.local`:
+     ```
+     GOOGLE_CLOUD_SPEECH_API_KEY=your_google_cloud_speech_api_key_here
+     ```
+     Note: You can also use your existing `GEMINI_API_KEY` if it has Speech-to-Text permissions.
 
 4. Set up Supabase:
    - Create a new Supabase project
