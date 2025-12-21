@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { createExpense } from '@/lib/services/expenses-client'
+import { useCreateExpense } from '@/hooks/useExpenses'
 import { SplitTypeSelector } from './SplitTypeSelector'
 import { SplitConfigurator } from './SplitConfigurator'
 import { validateSplits, calculateEqualSplit, calculatePercentageSplit, calculateShareSplit } from '@/lib/utils/splitCalculations'
 import type { GroupMember, SplitType } from '@/lib/types'
 import { X } from 'lucide-react'
+import { toast } from 'react-toastify'
 
 interface ExpenseFormModalProps {
   isOpen: boolean
@@ -37,6 +38,7 @@ export function ExpenseFormModal({
   initialData,
 }: ExpenseFormModalProps) {
   const router = useRouter()
+  const createExpenseMutation = useCreateExpense()
   const [description, setDescription] = useState(initialData?.description || '')
   const [amount, setAmount] = useState(
     initialData?.amount?.toString() || ''
@@ -58,8 +60,9 @@ export function ExpenseFormModal({
   const [excludedMembers, setExcludedMembers] = useState<string[]>(
     initialData?.excluded_members || []
   )
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  const loading = createExpenseMutation.isPending
 
   const memberIds = useMemo(() => members.map((m) => m.user_id), [members])
   const memberIdsStr = useMemo(() => JSON.stringify(memberIds), [memberIds])
@@ -136,18 +139,15 @@ export function ExpenseFormModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setLoading(true)
 
     const amountNum = parseFloat(amount)
     if (isNaN(amountNum) || amountNum <= 0) {
       setError('Please enter a valid amount.')
-      setLoading(false)
       return
     }
 
     if (availableMemberIds.length === 0) {
       setError('Please include at least one member in the split.')
-      setLoading(false)
       return
     }
 
@@ -201,7 +201,6 @@ export function ExpenseFormModal({
       
       if (Object.keys(filteredShares).length === 0) {
         setError('Total shares cannot be zero.')
-        setLoading(false)
         return
       }
       
@@ -221,31 +220,36 @@ export function ExpenseFormModal({
     const validationResult = validateSplits(amountNum, splits)
     if (!validationResult.valid) {
       setError(validationResult.error || 'Invalid split configuration')
-      setLoading(false)
       return
     }
 
     try {
-      const { error: createError } = await createExpense({
+      await createExpenseMutation.mutateAsync({
         group_id: groupId,
         description,
         amount: amountNum,
         paid_by: paidBy,
         split_type: splitType,
         splits,
+        excluded_members: excludedMembers,
       })
 
-      if (createError) {
-        setError(createError.message || 'Failed to create expense')
-        return
-      }
-
-      window.location.href = `/groups/${groupId}/expenses`
+      // Success - show toast, close modal, and redirect
+      toast.success('Expense created successfully!', {
+        position: 'top-right',
+        autoClose: 2000,
+      })
+      
+      onClose()
+      router.push(`/groups/${groupId}/expenses`)
     } catch (err: any) {
       console.error('Unexpected error creating expense:', err)
-      setError(err?.message || 'An unexpected error occurred')
-    } finally {
-      setLoading(false)
+      const errorMessage = err?.message || 'An unexpected error occurred'
+      setError(errorMessage)
+      toast.error(errorMessage, {
+        position: 'top-right',
+        autoClose: 3000,
+      })
     }
   }
 

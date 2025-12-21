@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* React Toastify custom styles */
+.toast-container {
+  z-index: 9999;
+}
+
+.toast {
+  @apply rounded-xl shadow-lg border border-gray-200/60;
+}
+
+.toast-body {
+  @apply text-sm font-medium;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);

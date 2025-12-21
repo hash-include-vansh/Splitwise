@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getGroupExpenses, getExpenseDetails } from '@/lib/services/expenses'
+import { getGroupExpenses, getExpenseDetails } from '@/lib/services/expenses-client'
 import { createExpense } from '@/lib/services/expenses-client'
 import { queryKeys } from '@/lib/queries/keys'
 import type { CreateExpenseData } from '@/lib/types'
@@ -14,9 +14,9 @@ export function useGroupExpenses(groupId: string) {
       if (error) throw error
       return data || []
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always refetch when invalidated
     gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnMount: false, // Don't refetch if data exists in cache
+    refetchOnMount: true, // Refetch when component mounts
   })
 }
 
@@ -40,9 +40,17 @@ export function useCreateExpense() {
       if (error) throw error
       return expense
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.expenses.list(variables.group_id) })
-      queryClient.invalidateQueries({ queryKey: queryKeys.balances.all })
+    onSuccess: (expense, variables) => {
+      // Immediately invalidate and refetch expenses
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.expenses.list(variables.group_id),
+        refetchType: 'active' // Only refetch active queries
+      })
+      // Invalidate balances
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.balances.all,
+        refetchType: 'active'
+      })
     },
   })
 }

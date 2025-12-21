@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { createExpense } from '@/lib/services/expenses-client'
+import { useCreateExpense } from '@/hooks/useExpenses'
 import { SplitTypeSelector } from './SplitTypeSelector'
 import { SplitConfigurator } from './SplitConfigurator'
 import type { SplitType, GroupMember } from '@/lib/types'
 import { validateSplits, calculateEqualSplit, calculatePercentageSplit, calculateShareSplit } from '@/lib/utils/splitCalculations'
+import { toast } from 'react-toastify'
 
 interface ExpenseFormProps {
   groupId: string
@@ -16,14 +17,16 @@ interface ExpenseFormProps {
 
 export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProps) {
   const router = useRouter()
+  const createExpenseMutation = useCreateExpense()
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [paidBy, setPaidBy] = useState(currentUserId)
   const [splitType, setSplitType] = useState<SplitType>('equal')
   const [splitConfig, setSplitConfig] = useState<any>({})
   const [excludedMembers, setExcludedMembers] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  const loading = createExpenseMutation.isPending
 
   const availableMembers = members.filter((m) => !excludedMembers.includes(m.user_id))
   // Use string comparison for stable dependencies to prevent infinite loops
@@ -181,9 +184,8 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
       return
     }
 
-    setLoading(true)
     try {
-      const { data, error: expenseError } = await createExpense({
+      await createExpenseMutation.mutateAsync({
         group_id: groupId,
         paid_by: paidBy,
         amount: amountNum,
@@ -193,18 +195,21 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
         excluded_members: excludedMembers,
       })
 
-      if (expenseError || !data) {
-        setError(expenseError?.message || 'Failed to create expense')
-        setLoading(false)
-        return
-      }
-
-      // Success - redirect to expenses list immediately
-      // Use window.location for reliable redirect
-      window.location.href = `/groups/${groupId}/expenses`
-    } catch (err) {
-      setError('An unexpected error occurred')
-      setLoading(false)
+      // Success - show toast and redirect
+      toast.success('Expense created successfully!', {
+        position: 'top-right',
+        autoClose: 2000,
+      })
+      
+      // Use router.push for client-side navigation (faster, no full page reload)
+      router.push(`/groups/${groupId}/expenses`)
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Failed to create expense'
+      setError(errorMessage)
+      toast.error(errorMessage, {
+        position: 'top-right',
+        autoClose: 3000,
+      })
     }
   }
 
