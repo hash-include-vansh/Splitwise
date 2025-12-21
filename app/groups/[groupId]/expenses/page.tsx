@@ -4,6 +4,7 @@ import { getGroupExpenses } from '@/lib/services/expenses'
 import { ExpenseList } from '@/components/expenses/ExpenseList'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 
 export default async function ExpensesPage({
   params,

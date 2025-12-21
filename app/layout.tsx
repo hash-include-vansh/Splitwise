@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Providers } from "./providers";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -33,6 +35,8 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           <main className="pb-20 md:pb-8">{children}</main>
+          <InstallPrompt />
+          <ServiceWorkerRegister />
         </Providers>
       </body>
     </html>

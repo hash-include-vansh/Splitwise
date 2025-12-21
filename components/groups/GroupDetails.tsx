@@ -1,7 +1,7 @@
 import { InviteMember } from './InviteMember'
 import { MemberList } from './MemberList'
 import { DeleteGroupButton } from './DeleteGroupButton'
-import Link from 'next/link'
+import { PrefetchLink } from '@/components/ui/PrefetchLink'
 import type { Group, GroupMember } from '@/lib/types'
 import { Receipt, TrendingUp, Users as UsersIcon } from 'lucide-react'
 
@@ -37,7 +37,7 @@ export function GroupDetails({ group, currentUserId, onRemoveMember }: GroupDeta
       </div>
 
       <div className="flex gap-4">
-        <Link
+        <PrefetchLink
           href={`/groups/${group.id}/expenses`}
           className="group flex-1 rounded-xl border border-gray-200/60 bg-white p-5 text-center shadow-elegant transition-all hover:shadow-medium hover:border-gray-300/60"
         >
@@ -46,17 +46,18 @@ export function GroupDetails({ group, currentUserId, onRemoveMember }: GroupDeta
           </div>
           <h3 className="text-base font-bold text-gray-900 mb-1 tracking-tight" style={{ letterSpacing: '-0.01em' }}>Expenses</h3>
           <p className="text-xs font-medium text-gray-600">View and manage expenses</p>
-        </Link>
-        <Link
+        </PrefetchLink>
+        <PrefetchLink
           href={`/groups/${group.id}/balances`}
           className="group flex-1 rounded-xl border border-gray-200/60 bg-white p-5 text-center shadow-elegant transition-all hover:shadow-medium hover:border-gray-300/60"
+          prefetch={false}
         >
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-gray-900 mb-3 group-hover:scale-105 transition-transform duration-200">
             <TrendingUp className="h-6 w-6 text-white" />
           </div>
           <h3 className="text-base font-bold text-gray-900 mb-1 tracking-tight" style={{ letterSpacing: '-0.01em' }}>Balances</h3>
           <p className="text-xs font-medium text-gray-600">View who owes what</p>
-        </Link>
+        </PrefetchLink>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
