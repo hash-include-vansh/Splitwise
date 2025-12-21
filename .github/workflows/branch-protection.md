@@ -67,17 +67,15 @@
    git commit -m "Hotfix: fix description"
    ```
 
-3. **Merge hotfix into both `main` and `dev`:**
+3. **Test locally, then merge to `main`:**
    ```bash
+   # Test the fix locally
+   npm run dev
+   
    # Merge to main
    git checkout main
    git merge hotfix/issue-description --no-ff -m "Hotfix: issue description"
    git push origin main
-   
-   # Merge to dev
-   git checkout dev
-   git merge hotfix/issue-description --no-ff -m "Hotfix: issue description"
-   git push origin dev
    ```
 
 ## Best Practices
@@ -87,6 +85,7 @@
 - Write clear commit messages
 - Use `--no-ff` for merge commits to preserve branch history
 - Delete feature branches after merging
-- Never force push to `main` or `dev`
-- Test thoroughly on `dev` before merging to `main`
+- Never force push to `main`
+- **Test thoroughly locally before merging to `main`**
+- Always test on `npm run dev` before merging
 
