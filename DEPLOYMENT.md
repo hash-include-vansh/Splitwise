@@ -65,9 +65,13 @@ GEMINI_API_KEY=your_gemini_api_key
 - **Redirect URLs:** Add these URLs (one per line):
   ```
   https://your-app-name.vercel.app/auth/callback
+  https://your-app-name-git-dev-*.vercel.app/auth/callback
   http://localhost:3000/auth/callback
   ```
-  (Keep localhost for local development)
+  **Important:** 
+  - Add the dev branch preview URL pattern (with wildcard `*`) to support dev deployments
+  - The pattern `*-git-dev-*.vercel.app` covers all dev branch preview URLs
+  - Keep localhost for local development
 
 ### 2.2 Verify RLS Status
 
