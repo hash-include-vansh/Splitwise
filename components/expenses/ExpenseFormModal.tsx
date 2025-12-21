@@ -154,11 +154,8 @@ export function ExpenseFormModal({
     let splits: { user_id: string; owed_amount: number }[] = []
 
     if (splitType === 'equal') {
-      const share = amountNum / availableMemberIds.length
-      splits = availableMemberIds.map((userId) => ({
-        user_id: userId,
-        owed_amount: Math.round((share + Number.EPSILON) * 100) / 100,
-      }))
+      // Use calculateEqualSplit which handles rounding errors by adjusting the last split
+      splits = calculateEqualSplit(amountNum, availableMemberIds)
     } else if (splitType === 'unequal') {
       const amounts = splitConfig.amounts || {}
       splits = availableMemberIds
