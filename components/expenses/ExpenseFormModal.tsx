@@ -208,6 +208,7 @@ export function ExpenseFormModal({
         description,
         amount: amountNum,
         paid_by: paidBy,
+        split_type: splitType,
         splits,
       })
 
