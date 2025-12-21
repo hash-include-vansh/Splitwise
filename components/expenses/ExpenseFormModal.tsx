@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createExpense } from '@/lib/services/expenses-client'
 import { SplitTypeSelector } from './SplitTypeSelector'
 import { SplitConfigurator } from './SplitConfigurator'
-import { validateSplits } from '@/lib/utils/splitCalculations'
+import { validateSplits, calculateEqualSplit, calculatePercentageSplit, calculateShareSplit } from '@/lib/utils/splitCalculations'
 import type { GroupMember, SplitType } from '@/lib/types'
 import { X } from 'lucide-react'
 
