@@ -147,15 +147,39 @@ export function VoiceExpenseButton({
     }
   }
 
-  const startListening = () => {
+  const startListening = async () => {
     if (recognitionRef.current && !isListening && !isProcessing) {
       try {
+        // Check if we're on HTTPS (required for mobile)
+        if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+          alert('Voice commands require HTTPS. Please use the secure version of this site.')
+          return
+        }
+
+        // Request microphone permission first (required for mobile)
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true })
+        } catch (permError: any) {
+          if (permError.name === 'NotAllowedError' || permError.name === 'PermissionDeniedError') {
+            alert('Microphone permission denied. Please allow microphone access in your browser settings and refresh the page.')
+            return
+          } else if (permError.name === 'NotFoundError' || permError.name === 'DevicesNotFoundError') {
+            alert('No microphone found. Please check your device settings.')
+            return
+          }
+          // If it's another error, continue anyway - some browsers handle permissions differently
+        }
+
         setTranscript('')
         setInterimTranscript('')
         recognitionRef.current.start()
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error starting recognition:', error)
-        alert('Could not start voice recognition. Please check your browser permissions.')
+        if (error.message?.includes('not allowed') || error.message?.includes('permission')) {
+          alert('Microphone permission denied. Please allow microphone access in your browser settings and try again.')
+        } else {
+          alert('Could not start voice recognition. Please check your browser permissions.')
+        }
       }
     }
   }
