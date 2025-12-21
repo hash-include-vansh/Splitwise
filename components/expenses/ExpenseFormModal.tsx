@@ -169,30 +169,56 @@ export function ExpenseFormModal({
         .filter((s) => s.owed_amount > 0)
     } else if (splitType === 'percentage') {
       const percentages = splitConfig.percentages || {}
-      splits = availableMemberIds
-        .map((userId) => {
+      const filteredPercentages = availableMemberIds
+        .filter((userId) => {
           const percentage = parseFloat(percentages[userId] || '0')
-          return {
-            user_id: userId,
-            owed_amount: Math.round((amountNum * percentage / 100 + Number.EPSILON) * 100) / 100,
-          }
+          return percentage > 0
         })
-        .filter((s) => s.owed_amount > 0)
+        .reduce((acc, userId) => {
+          acc[userId] = parseFloat(percentages[userId] || '0')
+          return acc
+        }, {} as Record<string, number>)
+      
+      // Use calculatePercentageSplit which handles rounding
+      splits = calculatePercentageSplit(amountNum, filteredPercentages)
+      
+      // Adjust the last split to ensure total matches exactly
+      if (splits.length > 0) {
+        const total = splits.reduce((sum, s) => sum + s.owed_amount, 0)
+        const difference = amountNum - total
+        if (Math.abs(difference) > 0.001) {
+          splits[splits.length - 1].owed_amount = Math.round((splits[splits.length - 1].owed_amount + difference + Number.EPSILON) * 100) / 100
+        }
+      }
     } else if (splitType === 'shares') {
       const shares = splitConfig.shares || {}
-      const totalShares = availableMemberIds.reduce(
-        (sum, userId) => sum + parseFloat(shares[userId] || '0'),
-        0
-      )
-      if (totalShares === 0) {
+      const filteredShares = availableMemberIds
+        .filter((userId) => {
+          const share = parseFloat(shares[userId] || '0')
+          return share > 0
+        })
+        .reduce((acc, userId) => {
+          acc[userId] = parseFloat(shares[userId] || '0')
+          return acc
+        }, {} as Record<string, number>)
+      
+      if (Object.keys(filteredShares).length === 0) {
         setError('Total shares cannot be zero.')
         setLoading(false)
         return
       }
-      splits = availableMemberIds.map((userId) => ({
-        user_id: userId,
-        owed_amount: Math.round((amountNum * parseFloat(shares[userId] || '0') / totalShares + Number.EPSILON) * 100) / 100,
-      }))
+      
+      // Use calculateShareSplit which handles rounding
+      splits = calculateShareSplit(amountNum, filteredShares)
+      
+      // Adjust the last split to ensure total matches exactly
+      if (splits.length > 0) {
+        const total = splits.reduce((sum, s) => sum + s.owed_amount, 0)
+        const difference = amountNum - total
+        if (Math.abs(difference) > 0.001) {
+          splits[splits.length - 1].owed_amount = Math.round((splits[splits.length - 1].owed_amount + difference + Number.EPSILON) * 100) / 100
+        }
+      }
     }
 
     const validationResult = validateSplits(amountNum, splits)

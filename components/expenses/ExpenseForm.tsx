@@ -6,7 +6,7 @@ import { createExpense } from '@/lib/services/expenses-client'
 import { SplitTypeSelector } from './SplitTypeSelector'
 import { SplitConfigurator } from './SplitConfigurator'
 import type { SplitType, GroupMember } from '@/lib/types'
-import { validateSplits } from '@/lib/utils/splitCalculations'
+import { validateSplits, calculateEqualSplit, calculatePercentageSplit, calculateShareSplit } from '@/lib/utils/splitCalculations'
 
 interface ExpenseFormProps {
   groupId: string
@@ -110,14 +110,14 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
     } else if (splitType === 'percentage') {
       const percentages = splitConfig.percentages || {}
       // Filter and calculate splits for non-excluded members only
-      splits = Object.entries(percentages)
+      const filteredPercentages = Object.entries(percentages)
         .filter(([userId, val]) => {
           const isExcluded = excludedMembers.includes(userId)
           const hasValue = val !== '' && val !== null && val !== undefined
           const isValidNumber = !isNaN(parseFloat(String(val)))
           return !isExcluded && hasValue && isValidNumber
         })
-        .map(([userId, val]) => {
+        .reduce((acc, [userId, val]) => {
           const percentageValue = parseFloat(String(val))
           // Ensure percentage is between 0 and 100, not a calculated amount
           // If the value is > 100, it might be stored as an amount, so we need to recalculate
@@ -126,28 +126,46 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
             // This might be stored as an amount, convert back to percentage
             percentage = (percentageValue / amountNum) * 100
           }
-          const owedAmount = Math.round((amountNum * percentage / 100 + Number.EPSILON) * 100) / 100
-          return {
-            user_id: userId,
-            owed_amount: owedAmount,
-          }
-        })
+          acc[userId] = percentage
+          return acc
+        }, {} as Record<string, number>)
+      
+      // Use calculatePercentageSplit which handles rounding
+      splits = calculatePercentageSplit(amountNum, filteredPercentages)
+      
+      // Adjust the last split to ensure total matches exactly
+      if (splits.length > 0) {
+        const total = splits.reduce((sum, s) => sum + s.owed_amount, 0)
+        const difference = amountNum - total
+        if (Math.abs(difference) > 0.001) {
+          splits[splits.length - 1].owed_amount = Math.round((splits[splits.length - 1].owed_amount + difference + Number.EPSILON) * 100) / 100
+        }
+      }
     } else if (splitType === 'shares') {
       const shares = splitConfig.shares || {}
-      const shareEntries = Object.entries(shares).filter(
-        ([userId, val]) => 
-          !excludedMembers.includes(userId) && 
-          val !== '' && 
-          !isNaN(parseFloat(val as string))
-      )
-      const totalShares = shareEntries.reduce(
-        (sum, [_, val]) => sum + parseFloat(val as string),
-        0
-      )
-      splits = shareEntries.map(([userId, val]) => ({
-        user_id: userId,
-        owed_amount: (amountNum * parseFloat(val as string)) / totalShares,
-      }))
+      const filteredShares = Object.entries(shares)
+        .filter(
+          ([userId, val]) => 
+            !excludedMembers.includes(userId) && 
+            val !== '' && 
+            !isNaN(parseFloat(val as string))
+        )
+        .reduce((acc, [userId, val]) => {
+          acc[userId] = parseFloat(val as string)
+          return acc
+        }, {} as Record<string, number>)
+      
+      // Use calculateShareSplit which handles rounding
+      splits = calculateShareSplit(amountNum, filteredShares)
+      
+      // Adjust the last split to ensure total matches exactly
+      if (splits.length > 0) {
+        const total = splits.reduce((sum, s) => sum + s.owed_amount, 0)
+        const difference = amountNum - total
+        if (Math.abs(difference) > 0.001) {
+          splits[splits.length - 1].owed_amount = Math.round((splits[splits.length - 1].owed_amount + difference + Number.EPSILON) * 100) / 100
+        }
+      }
     }
 
     // Validate splits
