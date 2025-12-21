@@ -83,6 +83,10 @@ See `documentation/DDS.md` for detailed schema documentation.
 /supabase         - Database schema and migrations
 ```
 
+## Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions to Vercel.
+
 ## License
 
 MIT
