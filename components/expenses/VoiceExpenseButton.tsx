@@ -24,6 +24,9 @@ export function VoiceExpenseButton({
   const [transcript, setTranscript] = useState('')
   const [interimTranscript, setInterimTranscript] = useState('')
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
     // Check if browser supports Web Speech API
@@ -169,7 +172,104 @@ export function VoiceExpenseButton({
     }
   }
 
+  // Cloud-based recording for iOS and other unsupported browsers
+  const startCloudRecording = async () => {
+    try {
+      // Check if we're on HTTPS (required for mobile)
+      if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        alert('Voice commands require HTTPS. Please use the secure version of this site.')
+        return
+      }
+
+      // Request microphone permission
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      // Create MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus',
+      })
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        // Stop all tracks
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop())
+          streamRef.current = null
+        }
+
+        // Create audio blob
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        
+        // Send to speech-to-text API
+        setIsProcessing(true)
+        setInterimTranscript('')
+        
+        try {
+          const formData = new FormData()
+          formData.append('audio', audioBlob)
+
+          const response = await fetch('/api/speech-to-text', {
+            method: 'POST',
+            body: formData,
+          })
+
+          const result = await response.json()
+
+          if (result.error) {
+            alert(`Speech recognition error: ${result.error}`)
+            setIsProcessing(false)
+            return
+          }
+
+          if (result.transcript) {
+            setTranscript(result.transcript)
+            parseAndFillExpense(result.transcript)
+          } else {
+            alert('No speech detected. Please try again.')
+            setIsProcessing(false)
+          }
+        } catch (error: any) {
+          console.error('Error in cloud speech-to-text:', error)
+          alert('Failed to transcribe audio. Please try again.')
+          setIsProcessing(false)
+        }
+      }
+
+      setIsListening(true)
+      setTranscript('')
+      setInterimTranscript('Recording...')
+      mediaRecorder.start()
+    } catch (error: any) {
+      console.error('Error starting cloud recording:', error)
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        alert('Microphone permission denied. Please allow microphone access in your browser settings.')
+      } else if (error.name === 'NotFoundError') {
+        alert('No microphone found. Please check your device settings.')
+      } else {
+        alert('Could not start recording. Please check your browser permissions.')
+      }
+      setIsListening(false)
+    }
+  }
+
   const startListening = async () => {
+    // Check if we're on iOS - use cloud recording directly
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    
+    if (isIOS) {
+      // iOS doesn't support Web Speech API, use cloud recording
+      startCloudRecording()
+      return
+    }
+
     if (recognitionRef.current && !isListening && !isProcessing) {
       try {
         // Check if we're on HTTPS (required for mobile)
@@ -210,7 +310,8 @@ export function VoiceExpenseButton({
                 console.error('Error in delayed start:', delayedError)
                 const errorMsg = delayedError.message || delayedError.toString()
                 if (errorMsg.includes('service') || errorMsg.includes('not-allowed')) {
-                  alert('Speech recognition service is not available. Please ensure you have internet connection and try again. If using iPhone, make sure you are using Chrome browser.')
+                  // Fallback to cloud recording
+                  startCloudRecording()
                 } else if (errorMsg.includes('not allowed') || errorMsg.includes('permission')) {
                   alert('Microphone permission denied. Please allow microphone access in your browser settings.')
                 } else {
@@ -225,7 +326,8 @@ export function VoiceExpenseButton({
         if (error.message?.includes('not allowed') || error.message?.includes('permission')) {
           alert('Microphone permission denied. Please allow microphone access in your browser settings and try again.')
         } else if (error.message?.includes('service')) {
-          alert('Speech recognition service is not available. Please try using Chrome browser.')
+          // Fallback to cloud recording
+          startCloudRecording()
         } else {
           alert('Could not start voice recognition. Please check your browser permissions.')
         }
@@ -234,20 +336,45 @@ export function VoiceExpenseButton({
   }
 
   const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop()
+    if (isListening) {
+      // Stop Web Speech API if active
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch (e) {
+          // Ignore
+        }
+      }
+      
+      // Stop cloud recording if active
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+      }
+      
+      // Stop media stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop())
+        streamRef.current = null
+      }
+      
       setIsListening(false)
     }
   }
 
-  // Check if speech recognition is supported
-  const isSupported =
+  // Check if speech recognition is supported OR if MediaRecorder is available (for cloud fallback)
+  const isWebSpeechSupported =
     typeof window !== 'undefined' &&
     ((window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition)
+  
+  const isMediaRecorderSupported =
+    typeof window !== 'undefined' &&
+    typeof MediaRecorder !== 'undefined'
 
-  if (!isSupported) {
-    return null // Don't show button if not supported
+  // Show button if either Web Speech API or MediaRecorder is supported
+  // MediaRecorder allows us to use cloud-based speech-to-text as fallback
+  if (!isWebSpeechSupported && !isMediaRecorderSupported) {
+    return null // Don't show button if neither is supported
   }
 
   const displayText = transcript || interimTranscript || ''
@@ -291,7 +418,11 @@ export function VoiceExpenseButton({
           <div className="mb-2 flex items-center gap-2">
             <div className={`h-2 w-2 rounded-full ${isListening ? 'animate-pulse bg-red-500' : 'bg-gray-400'}`} />
             <span className="text-xs font-semibold text-gray-600">
-              {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Transcription'}
+              {isListening 
+                ? (interimTranscript === 'Recording...' ? 'Recording...' : 'Listening...')
+                : isProcessing 
+                ? 'Processing...' 
+                : 'Transcription'}
             </span>
           </div>
           <div className="min-h-[40px] text-sm text-gray-800">
