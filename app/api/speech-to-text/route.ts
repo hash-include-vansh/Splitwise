@@ -22,26 +22,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Try AssemblyAI first (easier setup, free tier available)
+    // Try AssemblyAI first (recommended - free tier available, no billing required)
     if (process.env.ASSEMBLYAI_API_KEY) {
       try {
         return await tryAssemblyAI(audioBlob)
       } catch (assemblyError) {
-        console.error('AssemblyAI failed, trying Google Cloud:', assemblyError)
-        // Fall through to Google Cloud
+        console.error('AssemblyAI failed:', assemblyError)
+        // If AssemblyAI fails, try Google Cloud as fallback (if configured)
+        if (process.env.GOOGLE_CLOUD_SPEECH_API_KEY || process.env.GEMINI_API_KEY) {
+          try {
+            return await tryGoogleCloudSpeech(audioBlob)
+          } catch (googleError) {
+            console.error('Google Cloud Speech also failed:', googleError)
+            throw assemblyError // Throw original AssemblyAI error
+          }
+        }
+        throw assemblyError
       }
     }
 
-    // Try Google Cloud Speech-to-Text
+    // Try Google Cloud Speech-to-Text (optional, requires billing account)
     if (process.env.GOOGLE_CLOUD_SPEECH_API_KEY || process.env.GEMINI_API_KEY) {
       try {
         return await tryGoogleCloudSpeech(audioBlob)
       } catch (googleError) {
         console.error('Google Cloud Speech failed:', googleError)
-        // If both fail and we have AssemblyAI, try it
-        if (process.env.ASSEMBLYAI_API_KEY) {
-          return await tryAssemblyAI(audioBlob)
-        }
         throw googleError
       }
     }
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
     // No API keys configured
     return NextResponse.json(
       { 
-        error: 'Speech-to-text API key not configured. Please add ASSEMBLYAI_API_KEY or GOOGLE_CLOUD_SPEECH_API_KEY to your environment variables. See README for setup instructions.',
+        error: 'Speech-to-text API key not configured. Please add ASSEMBLYAI_API_KEY to your environment variables. See README for setup instructions. (Google Cloud Speech-to-Text is optional and requires a billing account)',
         transcript: null 
       },
       { status: 500 }
