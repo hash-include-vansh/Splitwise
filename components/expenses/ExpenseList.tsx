@@ -1,13 +1,19 @@
 import { ExpenseCard } from './ExpenseCard'
+import { ExpenseListSkeleton } from '@/components/ui/Skeleton'
 import type { Expense } from '@/lib/types'
 import { Receipt } from 'lucide-react'
 
 interface ExpenseListProps {
   expenses: Expense[]
   groupId: string
+  isLoading?: boolean
 }
 
-export function ExpenseList({ expenses, groupId }: ExpenseListProps) {
+export function ExpenseList({ expenses, groupId, isLoading }: ExpenseListProps) {
+  if (isLoading) {
+    return <ExpenseListSkeleton count={5} />
+  }
+
   if (expenses.length === 0) {
     return (
       <div className="text-center py-24">

@@ -3,6 +3,42 @@ import { getGroupDetails, removeMember } from '@/lib/services/groups'
 import { GroupDetails } from '@/components/groups/GroupDetails'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
+import { GroupListSkeleton } from '@/components/ui/Skeleton'
+
+async function GroupDetailContent({ groupId, userId }: { groupId: string; userId: string }) {
+  const { data: group } = await getGroupDetails(groupId)
+
+  if (!group) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <p className="text-gray-500">Group not found</p>
+      </div>
+    )
+  }
+
+  async function handleRemoveMember(userIdToRemove: string) {
+    'use server'
+    const supabase = await createClient()
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser()
+    
+    if (!currentUser) {
+      throw new Error('Not authenticated')
+    }
+    
+    await removeMember(groupId, userIdToRemove, currentUser.id)
+  }
+
+  return (
+    <GroupDetails
+      group={group}
+      currentUserId={userId}
+      onRemoveMember={handleRemoveMember}
+    />
+  )
+}
 
 export default async function GroupDetailPage({
   params,
@@ -19,30 +55,6 @@ export default async function GroupDetailPage({
     redirect('/login')
   }
 
-  const { data: group } = await getGroupDetails(groupId)
-
-  if (!group) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-gray-500">Group not found</p>
-      </div>
-    )
-  }
-
-  async function handleRemoveMember(userId: string) {
-    'use server'
-    const supabase = await createClient()
-    const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser()
-    
-    if (!currentUser) {
-      throw new Error('Not authenticated')
-    }
-    
-    await removeMember(groupId, userId, currentUser.id)
-  }
-
   return (
     <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
       <Link
@@ -54,11 +66,32 @@ export default async function GroupDetailPage({
         </svg>
         Back to Groups
       </Link>
-      <GroupDetails
-        group={group}
-        currentUserId={user.id}
-        onRemoveMember={handleRemoveMember}
-      />
+      <Suspense fallback={
+        <div className="space-y-6 sm:space-y-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="h-10 w-48 bg-gray-200 animate-pulse rounded mb-2" />
+              <div className="h-5 w-32 bg-gray-200 animate-pulse rounded" />
+            </div>
+            <div className="h-10 w-24 bg-gray-200 animate-pulse rounded" />
+          </div>
+          <div className="flex gap-4">
+            <div className="flex-1 rounded-xl bg-white border border-gray-200/60 p-5">
+              <div className="h-12 w-12 rounded-lg bg-gray-200 animate-pulse mb-3" />
+              <div className="h-5 w-24 bg-gray-200 animate-pulse mb-1" />
+              <div className="h-4 w-32 bg-gray-200 animate-pulse" />
+            </div>
+            <div className="flex-1 rounded-xl bg-white border border-gray-200/60 p-5">
+              <div className="h-12 w-12 rounded-lg bg-gray-200 animate-pulse mb-3" />
+              <div className="h-5 w-24 bg-gray-200 animate-pulse mb-1" />
+              <div className="h-4 w-32 bg-gray-200 animate-pulse" />
+            </div>
+          </div>
+          <GroupListSkeleton count={3} />
+        </div>
+      }>
+        <GroupDetailContent groupId={groupId} userId={user.id} />
+      </Suspense>
     </div>
   )
 }

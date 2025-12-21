@@ -5,22 +5,9 @@ import { ExpenseList } from '@/components/expenses/ExpenseList'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { ExpenseListSkeleton } from '@/components/ui/Skeleton'
 
-export default async function ExpensesPage({
-  params,
-}: {
-  params: Promise<{ groupId: string }>
-}) {
-  const { groupId } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
+async function ExpensesContent({ groupId }: { groupId: string }) {
   const { data: group } = await getGroupDetails(groupId)
   const { data: expenses } = await getGroupExpenses(groupId)
 
@@ -33,7 +20,7 @@ export default async function ExpensesPage({
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-5xl">
+    <>
       <div className="mb-6">
         <Link
           href={`/groups/${groupId}`}
@@ -66,6 +53,44 @@ export default async function ExpensesPage({
         </div>
       </div>
       <ExpenseList expenses={expenses || []} groupId={groupId} />
+    </>
+  )
+}
+
+export default async function ExpensesPage({
+  params,
+}: {
+  params: Promise<{ groupId: string }>
+}) {
+  const { groupId } = await params
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  return (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-5xl">
+      <Suspense fallback={
+        <>
+          <div className="mb-6">
+            <div className="h-5 w-24 bg-gray-200 animate-pulse rounded mb-4" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="h-10 w-32 bg-gray-200 animate-pulse rounded mb-2" />
+                <div className="h-5 w-24 bg-gray-200 animate-pulse rounded" />
+              </div>
+              <div className="h-12 w-32 bg-gray-200 animate-pulse rounded" />
+            </div>
+          </div>
+          <ExpenseListSkeleton count={5} />
+        </>
+      }>
+        <ExpensesContent groupId={groupId} />
+      </Suspense>
     </div>
   )
 }

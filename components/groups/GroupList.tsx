@@ -1,12 +1,18 @@
 import { GroupCard } from './GroupCard'
+import { GroupListSkeleton } from '@/components/ui/Skeleton'
 import type { Group } from '@/lib/types'
 import { Users } from 'lucide-react'
 
 interface GroupListProps {
   groups: Group[]
+  isLoading?: boolean
 }
 
-export function GroupList({ groups }: GroupListProps) {
+export function GroupList({ groups, isLoading }: GroupListProps) {
+  if (isLoading) {
+    return <GroupListSkeleton count={5} />
+  }
+
   if (groups.length === 0) {
     return (
       <div className="text-center py-24">
