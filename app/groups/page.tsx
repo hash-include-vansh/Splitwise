@@ -22,7 +22,7 @@ async function GroupsContent() {
     <>
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
             My Groups
           </h1>
           <p className="text-sm sm:text-base text-gray-600 font-medium">
@@ -52,10 +52,10 @@ export default async function GroupsPage() {
         <>
           <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <div className="h-12 w-48 bg-gray-200 animate-pulse rounded mb-2" />
+              <div className="h-10 sm:h-12 w-40 sm:w-48 bg-gray-200 animate-pulse rounded mb-2" />
               <div className="h-5 w-24 bg-gray-200 animate-pulse rounded" />
             </div>
-            <div className="h-12 w-32 bg-gray-200 animate-pulse rounded" />
+            <div className="h-10 sm:h-12 w-28 sm:w-32 bg-gray-200 animate-pulse rounded" />
           </div>
           <GroupListSkeleton count={5} />
         </>
