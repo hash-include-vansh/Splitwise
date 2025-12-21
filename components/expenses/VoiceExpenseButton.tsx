@@ -183,11 +183,33 @@ export function VoiceExpenseButton({
 
         setTranscript('')
         setInterimTranscript('')
-        recognitionRef.current.start()
+        
+        // Add a small delay to ensure permissions are fully processed
+        // This helps with mobile browsers that need time to set permissions
+        setTimeout(() => {
+          if (recognitionRef.current && !isListening) {
+            try {
+              recognitionRef.current.start()
+            } catch (startError: any) {
+              console.error('Error in delayed start:', startError)
+              if (startError.message?.includes('service') || startError.message?.includes('not-allowed')) {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+                if (isIOS || isSafari) {
+                  alert('Voice commands are not supported on Safari. Please use Chrome browser.')
+                } else {
+                  alert('Speech recognition service is not available. Please try using Chrome browser or check your device/browser settings.')
+                }
+              }
+            }
+          }
+        }, 200)
       } catch (error: any) {
         console.error('Error starting recognition:', error)
         if (error.message?.includes('not allowed') || error.message?.includes('permission')) {
           alert('Microphone permission denied. Please allow microphone access in your browser settings and try again.')
+        } else if (error.message?.includes('service')) {
+          alert('Speech recognition service is not available. Please try using Chrome browser.')
         } else {
           alert('Could not start voice recognition. Please check your browser permissions.')
         }
@@ -211,9 +233,15 @@ export function VoiceExpenseButton({
   // Check for iOS Safari - doesn't support Web Speech API
   const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
   const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  const isChrome = typeof window !== 'undefined' && /Chrome/.test(navigator.userAgent) && !/Edg|OPR/.test(navigator.userAgent)
   
-  if (!isSupported || (isIOS && isSafari)) {
-    return null // Don't show button if not supported or on iOS Safari
+  // On mobile, only show if it's Chrome (best support)
+  // On desktop, show if supported
+  const shouldShow = isSupported && (!isMobile || (isMobile && isChrome && !isIOS))
+  
+  if (!shouldShow) {
+    return null // Don't show button if not supported or on incompatible mobile browser
   }
 
   const displayText = transcript || interimTranscript || ''
