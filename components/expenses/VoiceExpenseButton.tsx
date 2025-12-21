@@ -37,6 +37,17 @@ export function VoiceExpenseButton({
         recognition.continuous = false
         recognition.interimResults = true // Enable interim results for real-time transcription
         recognition.lang = 'en-US'
+        
+        // Try to set service URI for better mobile compatibility
+        // Some mobile browsers need this explicitly set
+        try {
+          if ('serviceURI' in recognition) {
+            // Use Google's speech recognition service (default, but explicit helps on mobile)
+            ;(recognition as any).serviceURI = 'wss://www.google.com/speech-api/full-duplex/v1'
+          }
+        } catch (e) {
+          // Ignore if serviceURI is not available
+        }
 
         recognition.onstart = () => {
           setIsListening(true)
@@ -80,14 +91,14 @@ export function VoiceExpenseButton({
             alert('Microphone permission denied. Please allow microphone access in your browser settings.')
           } else if (event.error === 'service-not-allowed') {
             // This error means the speech recognition service is not available
-            // Common on mobile browsers, especially iOS Safari
+            // Try to provide helpful guidance
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
             const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
             
-            if (isIOS || isSafari) {
-              alert('Voice commands are not supported on Safari. Please use Chrome or another browser that supports speech recognition.')
+            if (isIOS && isSafari) {
+              alert('Voice commands are not supported on Safari. Please use Chrome browser on iOS.')
             } else {
-              alert('Speech recognition service is not available. This may be due to browser restrictions or network issues. Please try using Chrome browser or check your device settings.')
+              alert('Speech recognition service is not available. Please ensure you have internet connection and try again. If the issue persists, check your browser settings or try Chrome browser.')
             }
           } else {
             alert(`Speech recognition error: ${event.error}. Please try again.`)
@@ -184,26 +195,31 @@ export function VoiceExpenseButton({
         setTranscript('')
         setInterimTranscript('')
         
-        // Add a small delay to ensure permissions are fully processed
-        // This helps with mobile browsers that need time to set permissions
-        setTimeout(() => {
-          if (recognitionRef.current && !isListening) {
-            try {
-              recognitionRef.current.start()
-            } catch (startError: any) {
-              console.error('Error in delayed start:', startError)
-              if (startError.message?.includes('service') || startError.message?.includes('not-allowed')) {
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-                if (isIOS || isSafari) {
-                  alert('Voice commands are not supported on Safari. Please use Chrome browser.')
+        // For mobile, we need to ensure the recognition is started in the same user gesture
+        // Try starting immediately first
+        try {
+          recognitionRef.current.start()
+        } catch (immediateError: any) {
+          // If immediate start fails, try with a small delay
+          // This helps with some mobile browsers that need a moment
+          setTimeout(() => {
+            if (recognitionRef.current && !isListening) {
+              try {
+                recognitionRef.current.start()
+              } catch (delayedError: any) {
+                console.error('Error in delayed start:', delayedError)
+                const errorMsg = delayedError.message || delayedError.toString()
+                if (errorMsg.includes('service') || errorMsg.includes('not-allowed')) {
+                  alert('Speech recognition service is not available. Please ensure you have internet connection and try again. If using iPhone, make sure you are using Chrome browser.')
+                } else if (errorMsg.includes('not allowed') || errorMsg.includes('permission')) {
+                  alert('Microphone permission denied. Please allow microphone access in your browser settings.')
                 } else {
-                  alert('Speech recognition service is not available. Please try using Chrome browser or check your device/browser settings.')
+                  alert('Could not start voice recognition. Please try again or check your browser settings.')
                 }
               }
             }
-          }
-        }, 200)
+          }, 100)
+        }
       } catch (error: any) {
         console.error('Error starting recognition:', error)
         if (error.message?.includes('not allowed') || error.message?.includes('permission')) {
@@ -230,18 +246,8 @@ export function VoiceExpenseButton({
     ((window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition)
 
-  // Check for iOS Safari - doesn't support Web Speech API
-  const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
-  const isSafari = typeof window !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-  const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  const isChrome = typeof window !== 'undefined' && /Chrome/.test(navigator.userAgent) && !/Edg|OPR/.test(navigator.userAgent)
-  
-  // On mobile, only show if it's Chrome (best support)
-  // On desktop, show if supported
-  const shouldShow = isSupported && (!isMobile || (isMobile && isChrome && !isIOS))
-  
-  if (!shouldShow) {
-    return null // Don't show button if not supported or on incompatible mobile browser
+  if (!isSupported) {
+    return null // Don't show button if not supported
   }
 
   const displayText = transcript || interimTranscript || ''
