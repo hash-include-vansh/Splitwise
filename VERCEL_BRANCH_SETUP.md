@@ -1,10 +1,10 @@
-# Vercel Branch Deployment Setup
+# Vercel Deployment Setup
 
-This guide explains how to set up separate Vercel deployments for `main` (production) and `dev` (staging) branches.
+This guide explains how to set up Vercel deployments for your project.
 
-## Option 1: Automatic Branch Deployments (Recommended)
+## Setup: Single Production Deployment
 
-Vercel automatically creates preview deployments for all branches. You can configure which branch is production.
+Since we're using a simplified workflow (test locally → merge to main), we only need one production deployment.
 
 ### Step 1: Connect Repository to Vercel
 
@@ -19,156 +19,73 @@ Vercel automatically creates preview deployments for all branches. You can confi
 2. Under **"Production Branch"**, select `main`
 3. This makes `main` branch deployments go to your production domain
 
-### Step 3: Enable Branch Deployments
+### Step 3: Enable Automatic Deployments
 
 1. Go to **Settings** → **Git**
 2. Enable **"Automatic deployments from Git"**
-3. Enable **"Deploy previews for pull requests"** (optional but recommended)
+3. Enable **"Deploy previews for pull requests"** (optional but recommended for feature branches)
 
-### Step 4: Access Your Deployments
+### Step 4: Configure Environment Variables
 
-- **Production (main branch):**
-  - URL: `your-project-name.vercel.app`
-  - Custom domain: `yourdomain.com` (if configured)
-  - Auto-deploys on every push to `main`
+1. Go to **Settings** → **Environment Variables**
+2. Add all your environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `GEMINI_API_KEY`
+   - `ASSEMBLYAI_API_KEY`
+   - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - etc.
+3. Select **"Production"** environment
 
-- **Preview (dev branch):**
-  - URL: `your-project-name-git-dev-your-username.vercel.app`
-  - Or check Vercel dashboard for the exact URL
-  - Auto-deploys on every push to `dev`
+### Step 5: Configure Custom Domain (Optional)
 
-## Option 2: Separate Projects (More Control)
+1. Go to **Settings** → **Domains**
+2. Add your custom domain: `splitkarobhai.com` or `app.splitkarobhai.com`
 
-Create two separate Vercel projects for better isolation.
-
-### Step 1: Create Production Project
-
-1. Go to Vercel Dashboard
-2. Click **"Add New..."** → **"Project"**
-3. Import repository
-4. **Project Name:** `splitkarobhai` (or your preferred name)
-5. **Framework Preset:** Next.js
-6. **Root Directory:** `./` (leave as is)
-7. **Build Command:** `npm run build` (auto-detected)
-8. **Output Directory:** `.next` (auto-detected)
-9. **Install Command:** `npm install` (auto-detected)
-10. Under **"Git"** settings:
-    - **Production Branch:** `main`
-    - **Branch Deployments:** Disable (optional)
-11. Click **"Deploy"**
-
-### Step 2: Create Development Project
-
-1. Go to Vercel Dashboard
-2. Click **"Add New..."** → **"Project"**
-3. Import the **same** repository
-4. **Project Name:** `splitkarobhai-dev` (or `splitkarobhai-staging`)
-5. **Framework Preset:** Next.js
-6. **Root Directory:** `./`
-7. **Build Command:** `npm run build`
-8. **Output Directory:** `.next`
-9. **Install Command:** `npm install`
-10. Under **"Git"** settings:
-    - **Production Branch:** `dev`
-    - **Branch Deployments:** Disable (optional)
-11. Click **"Deploy"**
-
-### Step 3: Configure Environment Variables
-
-For each project, set up environment variables:
-
-**Production Project (main):**
-- Go to **Settings** → **Environment Variables**
-- Add all your production environment variables:
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `GEMINI_API_KEY`
-  - `ASSEMBLYAI_API_KEY`
-  - etc.
-- Select **"Production"** environment
-
-**Development Project (dev):**
-- Go to **Settings** → **Environment Variables**
-- Add the same variables (or different ones for testing)
-- Select **"Production"** environment (since `dev` is the production branch for this project)
-
-### Step 4: Configure Custom Domains (Optional)
-
-**Production:**
-- Go to **Settings** → **Domains**
-- Add your production domain: `splitkarobhai.com` or `app.splitkarobhai.com`
-
-**Development:**
-- Go to **Settings** → **Domains**
-- Add a staging domain: `dev.splitkarobhai.com` or `staging.splitkarobhai.com`
-
-## Option 3: Using Vercel CLI (Advanced)
-
-You can also link projects via CLI:
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Link production project
-vercel link
-# Select your production project
-
-# Deploy to production
-vercel --prod
-
-# Link development project
-vercel link
-# Select your development project (or create new)
-
-# Deploy to development
-vercel
-```
-
-## Recommended Setup
-
-**I recommend Option 1 (Automatic Branch Deployments)** because:
-- ✅ Simpler setup
-- ✅ Automatic deployments
-- ✅ Preview URLs for every branch
-- ✅ Easy to manage
-- ✅ Free tier supports this
-
-**Use Option 2 (Separate Projects)** if you need:
-- Different environment variables per environment
-- Different build settings
-- Complete isolation between environments
-- Different custom domains
-
-## Accessing Your Deployments
+## Accessing Your Deployment
 
 After setup, you'll have:
 
-1. **Production URL (main branch):**
-   - `https://your-project.vercel.app`
-   - Or your custom domain
+- **Production URL (main branch):**
+  - `https://your-project.vercel.app`
+  - Or your custom domain
 
-2. **Development URL (dev branch):**
-   - `https://your-project-git-dev-your-username.vercel.app`
-   - Or check Vercel dashboard → Deployments
+- **Preview URLs (feature branches):**
+  - `https://your-project-git-feature-branch-name-your-username.vercel.app`
+  - Automatically created for each feature branch
+  - Check Vercel dashboard → Deployments for exact URLs
 
 ## Workflow
 
-1. **Develop on `dev` branch:**
-   ```bash
-   git checkout dev
-   git push origin dev
-   # Vercel automatically deploys to dev URL
-   ```
-
-2. **Test on dev deployment**
-
-3. **Merge to `main` when ready:**
+1. **Create feature branch:**
    ```bash
    git checkout main
-   git merge dev --no-ff
+   git pull origin main
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Develop and push:**
+   ```bash
+   git add .
+   git commit -m "Add feature: description"
+   git push -u origin feature/your-feature-name
+   # Vercel automatically creates preview deployment
+   ```
+
+3. **Test locally:**
+   ```bash
+   npm run dev
+   # Test all changes thoroughly
+   ```
+
+4. **Once approved, merge to main:**
+   ```bash
+   git checkout main
+   git pull origin main
+   git merge feature/your-feature-name --no-ff -m "Merge feature/your-feature-name: description"
    git push origin main
-   # Vercel automatically deploys to production URL
+   # Vercel automatically deploys to production
    ```
 
 ## Troubleshooting
@@ -187,3 +104,9 @@ After setup, you'll have:
 - Ensure all environment variables are set
 - Check `package.json` scripts are correct
 
+### OAuth redirect issues
+- Add your Vercel production URL to Supabase redirect URLs:
+  - Go to Supabase Dashboard → Authentication → URL Configuration
+  - Add: `https://your-project.vercel.app/auth/callback`
+- For preview deployments, add preview URLs as needed:
+  - `https://your-project-git-feature-branch-name-your-username.vercel.app/auth/callback`
