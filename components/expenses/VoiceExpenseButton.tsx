@@ -86,11 +86,6 @@ export function VoiceExpenseButton({
         recognition.onend = () => {
           setIsListening(false)
           setInterimTranscript('')
-          
-          // If we were listening and have a transcript, process it
-          if (transcript.trim() && !isProcessing) {
-            parseAndFillExpense(transcript.trim())
-          }
         }
 
         recognitionRef.current = recognition
@@ -102,6 +97,7 @@ export function VoiceExpenseButton({
         recognitionRef.current.stop()
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const parseAndFillExpense = async (text: string) => {

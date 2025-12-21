@@ -18,7 +18,7 @@ export function SimplifiedDebtView({ debts }: SimplifiedDebtViewProps) {
             All settled up!
           </h3>
           <p className="text-base font-medium text-gray-600 max-w-sm mx-auto">
-            No debts to simplify. Everyone's square!
+            No debts to simplify. Everyone&apos;s square!
           </p>
         </div>
       </div>

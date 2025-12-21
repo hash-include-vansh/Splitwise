@@ -47,7 +47,7 @@ export function NewExpensePageClient({
                 Add New Expense
               </h1>
               <p className="text-sm sm:text-base text-gray-600 font-medium">
-                Who's paying? Let's split it up!
+                Who&apos;s paying? Let&apos;s split it up!
               </p>
             </div>
             <VoiceExpenseButton
