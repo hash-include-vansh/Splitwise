@@ -265,11 +265,12 @@ export function VoiceExpenseButton({
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     
     if (isIOS) {
-      // iOS doesn't support Web Speech API, use cloud recording
+      // iOS doesn't support Web Speech API, use cloud recording (AssemblyAI)
       startCloudRecording()
       return
     }
 
+    // For all other browsers, use Web Speech API (the previous method that was working)
     if (recognitionRef.current && !isListening && !isProcessing) {
       try {
         // Check if we're on HTTPS (required for mobile)
@@ -310,8 +311,8 @@ export function VoiceExpenseButton({
                 console.error('Error in delayed start:', delayedError)
                 const errorMsg = delayedError.message || delayedError.toString()
                 if (errorMsg.includes('service') || errorMsg.includes('not-allowed')) {
-                  // Fallback to cloud recording
-                  startCloudRecording()
+                  // On non-iOS, this shouldn't happen, but if it does, show error
+                  alert('Speech recognition service is not available. Please try again or check your browser settings.')
                 } else if (errorMsg.includes('not allowed') || errorMsg.includes('permission')) {
                   alert('Microphone permission denied. Please allow microphone access in your browser settings.')
                 } else {
@@ -326,8 +327,8 @@ export function VoiceExpenseButton({
         if (error.message?.includes('not allowed') || error.message?.includes('permission')) {
           alert('Microphone permission denied. Please allow microphone access in your browser settings and try again.')
         } else if (error.message?.includes('service')) {
-          // Fallback to cloud recording
-          startCloudRecording()
+          // On non-iOS, this shouldn't happen, but if it does, show error
+          alert('Speech recognition service is not available. Please try again or check your browser settings.')
         } else {
           alert('Could not start voice recognition. Please check your browser permissions.')
         }
