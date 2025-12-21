@@ -24,7 +24,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch additional group metadata for better context
-    let groupMetadata = {}
+    interface GroupMetadata {
+      groupName?: string
+      groupId?: string
+      totalMembers?: number
+      createdBy?: string
+    }
+    
+    let groupMetadata: GroupMetadata = {}
     try {
       const supabase = await createClient()
       const { data: group } = await getGroupDetails(groupId)
