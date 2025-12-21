@@ -1,7 +1,8 @@
 // Service Worker for SplitKaroBhai PWA
-const CACHE_NAME = 'splitkarobhai-v1'
+const CACHE_NAME = 'splitkarobhai-v2'
 const urlsToCache = [
   '/',
+  '/login',
   '/groups',
   '/manifest.json',
 ]
@@ -23,6 +24,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName)
             return caches.delete(cacheName)
           }
         })
@@ -49,6 +51,29 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // For navigation requests (pages), always try network first, then cache
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // If network request succeeds, cache it
+          if (response && response.status === 200) {
+            const responseToCache = response.clone()
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache)
+            })
+          }
+          return response
+        })
+        .catch(() => {
+          // If network fails, try cache
+          return caches.match(event.request)
+        })
+    )
+    return
+  }
+
+  // For other requests, try cache first, then network
   event.respondWith(
     caches.match(event.request).then((response) => {
       // Return cached version or fetch from network

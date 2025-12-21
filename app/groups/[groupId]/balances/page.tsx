@@ -132,7 +132,7 @@ export default function BalancesPage() {
               Shows who owes whom based on all expenses
             </p>
           </div>
-          <RawBalanceView balances={rawBalances} currentUserId={user?.id} />
+          <RawBalanceView balances={rawBalances} currentUserId={user?.id} groupId={groupId} />
         </div>
       )}
     </div>

@@ -20,15 +20,13 @@ async function GroupsContent() {
 
   return (
     <>
-      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
-            My Groups
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600 font-medium">
-            {groups?.length || 0} {groups?.length === 1 ? 'group' : 'groups'}
-          </p>
-        </div>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
+          My Groups
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600 font-medium mb-4">
+          {groups?.length || 0} {groups?.length === 1 ? 'group' : 'groups'}
+        </p>
         <CreateGroupButton />
       </div>
       <GroupList groups={groups || []} />

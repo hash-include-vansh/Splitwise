@@ -1,6 +1,8 @@
 'use client'
+// Cache-busting: v2 - Fixed selectedBalance error, clickable only in My Balances tab
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import type { RawBalance } from '@/lib/types'
 import { Avatar } from '@/components/ui/Avatar'
 import { CheckCircle2, ArrowRight } from 'lucide-react'
@@ -8,10 +10,19 @@ import { CheckCircle2, ArrowRight } from 'lucide-react'
 interface RawBalanceViewProps {
   balances: RawBalance[]
   currentUserId?: string
+  groupId: string
 }
 
-export function RawBalanceView({ balances, currentUserId }: RawBalanceViewProps) {
+export function RawBalanceView({ balances, currentUserId, groupId }: RawBalanceViewProps) {
   const [activeTab, setActiveTab] = useState<'my' | 'all'>(currentUserId ? 'my' : 'all')
+  const router = useRouter()
+
+  const handleBalanceClick = (balance: RawBalance) => {
+    // Only allow clicking in "My Balances" tab
+    if (activeTab === 'my') {
+      router.push(`/groups/${groupId}/balances/${balance.from_user_id}/${balance.to_user_id}`)
+    }
+  }
 
   // Filter and simplify balances for current user
   const myBalances = useMemo(() => {
@@ -23,23 +34,17 @@ export function RawBalanceView({ balances, currentUserId }: RawBalanceViewProps)
     )
 
     // Simplify pair-level debts
-    // Track net amounts between each pair of users
-    // Use a normalized key (sorted IDs) to identify pairs
     const pairMap = new Map<string, { net: number; balances: RawBalance[] }>()
 
     userBalances.forEach((balance) => {
-      // Create normalized key (always smaller ID first)
       const [id1, id2] = [balance.from_user_id, balance.to_user_id].sort()
       const key = `${id1}|${id2}`
 
       const existing = pairMap.get(key) || { net: 0, balances: [] }
       
-      // Calculate net: positive if id1 owes id2, negative if id2 owes id1
       if (balance.from_user_id === id1) {
-        // id1 owes id2
         existing.net += balance.amount
       } else {
-        // id2 owes id1 (reverse direction)
         existing.net -= balance.amount
       }
       
@@ -52,36 +57,28 @@ export function RawBalanceView({ balances, currentUserId }: RawBalanceViewProps)
     pairMap.forEach((pair, key) => {
       if (Math.abs(pair.net) > 0.01) {
         const [id1, id2] = key.split('|')
-        
-        // Find user objects for both IDs from any balance in the pair
         const anyBalance = pair.balances[0]
         let user1, user2
         
-        // Get user1
         if (anyBalance.from_user_id === id1) {
           user1 = anyBalance.from_user
         } else if (anyBalance.to_user_id === id1) {
           user1 = anyBalance.to_user
         } else {
-          // Try to find from other balances
           const balanceWithId1 = pair.balances.find(b => b.from_user_id === id1 || b.to_user_id === id1)
           user1 = balanceWithId1?.from_user_id === id1 ? balanceWithId1.from_user : balanceWithId1?.to_user
         }
         
-        // Get user2
         if (anyBalance.from_user_id === id2) {
-          user2 = anyBalance.from_user
+          user2 = anyBalance.to_user
         } else if (anyBalance.to_user_id === id2) {
           user2 = anyBalance.to_user
         } else {
-          // Try to find from other balances
           const balanceWithId2 = pair.balances.find(b => b.from_user_id === id2 || b.to_user_id === id2)
           user2 = balanceWithId2?.from_user_id === id2 ? balanceWithId2.from_user : balanceWithId2?.to_user
         }
         
-        // Determine who owes whom based on net
         if (pair.net > 0) {
-          // id1 owes id2
           simplified.push({
             from_user_id: id1,
             to_user_id: id2,
@@ -90,7 +87,6 @@ export function RawBalanceView({ balances, currentUserId }: RawBalanceViewProps)
             to_user: user2,
           })
         } else {
-          // id2 owes id1
           simplified.push({
             from_user_id: id2,
             to_user_id: id1,
@@ -126,7 +122,7 @@ export function RawBalanceView({ balances, currentUserId }: RawBalanceViewProps)
           return (
             <div
               key={`${balance.from_user_id}-${balance.to_user_id}-${index}`}
-              className="rounded-xl border border-gray-200/60 bg-white p-4 shadow-elegant transition-all hover:shadow-medium hover:border-gray-300/60"
+              className="rounded-xl border border-gray-200/60 bg-white p-4 shadow-elegant"
             >
               <div className="flex items-center justify-between gap-3 sm:gap-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -251,54 +247,102 @@ export function RawBalanceView({ balances, currentUserId }: RawBalanceViewProps)
         {displayBalances.map((balance, index) => {
           const fromUser = balance.from_user
           const toUser = balance.to_user
+          const isClickable = activeTab === 'my'
 
-          return (
-            <div
-              key={`${balance.from_user_id}-${balance.to_user_id}-${index}`}
-              className="rounded-xl border border-gray-200/60 bg-white p-4 shadow-elegant transition-all hover:shadow-medium hover:border-gray-300/60"
-            >
-              <div className="flex items-center justify-between gap-3 sm:gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <Avatar
-                    src={fromUser?.avatar_url}
-                    alt={fromUser?.name || 'User'}
-                    name={fromUser?.name}
-                    email={fromUser?.email}
-                    size="sm"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900 mb-0.5 truncate tracking-tight" style={{ letterSpacing: '-0.01em' }}>
-                      {fromUser?.name || fromUser?.email || 'Unknown'}
-                    </p>
-                    <p className="text-xs font-medium text-gray-500">owes</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                  <div className="text-center">
-                    <div className="text-base sm:text-lg font-black text-gray-900 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
-                      ₹{balance.amount.toFixed(2)}
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
-                  <div className="flex items-center gap-2 sm:gap-3">
+          if (isClickable) {
+            return (
+              <button
+                key={`${balance.from_user_id}-${balance.to_user_id}-${index}`}
+                onClick={() => handleBalanceClick(balance)}
+                className="w-full text-left rounded-xl border border-gray-200/60 bg-white p-4 shadow-elegant transition-all hover:shadow-medium hover:border-gray-300/60 cursor-pointer active:scale-[0.98]"
+              >
+                <div className="flex items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Avatar
-                      src={toUser?.avatar_url}
-                      alt={toUser?.name || 'User'}
-                      name={toUser?.name}
-                      email={toUser?.email}
+                      src={fromUser?.avatar_url}
+                      alt={fromUser?.name || 'User'}
+                      name={fromUser?.name}
+                      email={fromUser?.email}
                       size="sm"
                     />
-                    <p className="text-sm font-bold text-gray-900 truncate tracking-tight hidden sm:block" style={{ letterSpacing: '-0.01em' }}>
-                      {toUser?.name || toUser?.email || 'Unknown'}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900 mb-0.5 truncate tracking-tight" style={{ letterSpacing: '-0.01em' }}>
+                        {fromUser?.name || fromUser?.email || 'Unknown'}
+                      </p>
+                      <p className="text-xs font-medium text-gray-500">owes</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <div className="text-center">
+                      <div className="text-base sm:text-lg font-black text-gray-900 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                        ₹{balance.amount.toFixed(2)}
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Avatar
+                        src={toUser?.avatar_url}
+                        alt={toUser?.name || 'User'}
+                        name={toUser?.name}
+                        email={toUser?.email}
+                        size="sm"
+                      />
+                      <p className="text-sm font-bold text-gray-900 truncate tracking-tight hidden sm:block" style={{ letterSpacing: '-0.01em' }}>
+                        {toUser?.name || toUser?.email || 'Unknown'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            )
+          } else {
+            return (
+              <div
+                key={`${balance.from_user_id}-${balance.to_user_id}-${index}`}
+                className="rounded-xl border border-gray-200/60 bg-white p-4 shadow-elegant"
+              >
+                <div className="flex items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar
+                      src={fromUser?.avatar_url}
+                      alt={fromUser?.name || 'User'}
+                      name={fromUser?.name}
+                      email={fromUser?.email}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900 mb-0.5 truncate tracking-tight" style={{ letterSpacing: '-0.01em' }}>
+                        {fromUser?.name || fromUser?.email || 'Unknown'}
+                      </p>
+                      <p className="text-xs font-medium text-gray-500">owes</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <div className="text-center">
+                      <div className="text-base sm:text-lg font-black text-gray-900 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+                        ₹{balance.amount.toFixed(2)}
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Avatar
+                        src={toUser?.avatar_url}
+                        alt={toUser?.name || 'User'}
+                        name={toUser?.name}
+                        email={toUser?.email}
+                        size="sm"
+                      />
+                      <p className="text-sm font-bold text-gray-900 truncate tracking-tight hidden sm:block" style={{ letterSpacing: '-0.01em' }}>
+                        {toUser?.name || toUser?.email || 'Unknown'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )
+            )
+          }
         })}
       </div>
     </div>
   )
 }
-

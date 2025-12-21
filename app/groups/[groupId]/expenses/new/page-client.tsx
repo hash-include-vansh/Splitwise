@@ -30,23 +30,23 @@ export function NewExpensePageClient({
 
   return (
     <>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-5xl">
-        <div className="mb-6">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-5xl">
+        <div className="mb-4 sm:mb-6">
           <Link
             href={`/groups/${groupId}/expenses`}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors mb-3 sm:mb-4"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-3 w-3 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to Expenses
           </Link>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-1 sm:mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
                 Add New Expense
               </h1>
-              <p className="text-sm sm:text-base text-gray-600 font-medium">
+              <p className="text-xs sm:text-sm lg:text-base text-gray-600 font-medium">
                 Who&apos;s paying? Let&apos;s split it up!
               </p>
             </div>
@@ -60,7 +60,7 @@ export function NewExpensePageClient({
           </div>
         </div>
         <div className="max-w-2xl">
-          <div className="rounded-2xl border-2 border-gray-300 bg-white p-6 sm:p-8 shadow-xl">
+          <div className="rounded-xl sm:rounded-2xl border border-gray-300 sm:border-2 bg-white p-4 sm:p-6 lg:p-8 shadow-lg sm:shadow-xl">
             <ExpenseForm
               groupId={groupId}
               members={members}

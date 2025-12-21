@@ -102,9 +102,9 @@ export function SplitConfigurator({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
           Split Configuration
         </label>
         <div className="space-y-2">
@@ -115,7 +115,7 @@ export function SplitConfigurator({
             return (
               <div
                 key={member.user_id}
-                className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
+                className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-3 transition-all ${
                   isExcluded 
                     ? 'border-gray-300/60 bg-gradient-to-br from-gray-100 to-gray-200/50 opacity-60' 
                     : 'border-gray-300 bg-white shadow-medium hover:shadow-large hover:border-gray-500'
@@ -125,10 +125,10 @@ export function SplitConfigurator({
                   type="checkbox"
                   checked={!isExcluded}
                   onChange={() => handleExcludeToggle(member.user_id)}
-                  className="h-4 w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-500 focus:ring-offset-0"
+                  className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-500 focus:ring-offset-0 flex-shrink-0"
                 />
-                <div className="flex-1">
-                  <div className={`font-medium text-sm ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
+                <div className="flex-1 min-w-0">
+                  <div className={`font-medium text-xs sm:text-sm truncate ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
                     {user?.name || user?.email || 'Unknown'}
                     {isExcluded && ' (excluded)'}
                   </div>
@@ -140,7 +140,7 @@ export function SplitConfigurator({
                       disabled={isExcluded}
                       min="0"
                       step="0.01"
-                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
                       placeholder="Enter amount"
                     />
                   )}
@@ -153,7 +153,7 @@ export function SplitConfigurator({
                       min="0"
                       max="100"
                       step="0.1"
-                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
                       placeholder="Enter %"
                     />
                   )}
@@ -165,17 +165,17 @@ export function SplitConfigurator({
                       disabled={isExcluded}
                       min="0"
                       step="0.1"
-                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
                       placeholder="Enter shares"
                     />
                   )}
                 </div>
-                <div className="text-right">
-                  <div className={`text-sm font-medium ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
+                <div className="text-right flex-shrink-0">
+                  <div className={`text-xs sm:text-sm font-medium ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
                     ₹{calculatePreview(member.user_id)}
                   </div>
                   {splitType === 'percentage' && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-[10px] sm:text-xs text-gray-500">
                       {config.percentages?.[member.user_id] || '0'}%
                     </div>
                   )}
@@ -186,10 +186,10 @@ export function SplitConfigurator({
         </div>
       </div>
 
-          <div className="rounded-xl bg-gray-100 border-2 border-gray-400 p-4 shadow-md">
-        <div className="flex justify-between items-center text-sm">
+          <div className="rounded-lg sm:rounded-xl bg-gray-100 border-2 border-gray-400 p-3 sm:p-4 shadow-md">
+        <div className="flex justify-between items-center text-xs sm:text-sm">
           <span className="font-semibold text-gray-700">Total:</span>
-          <span className="font-bold text-gray-900 text-lg">
+          <span className="font-bold text-gray-900 text-base sm:text-lg">
             {splitType === 'percentage' || splitType === 'shares' ? getTotal() : `₹${getTotal()}`}
           </span>
         </div>
