@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
           groupName: group.name,
           groupId: group.id,
           totalMembers: group.members.length,
-          createdBy: group.created_by_user?.name || group.created_by_user?.email || 'Unknown',
+          createdBy: 'Unknown', // created_by_user not available in getGroupDetails return type
         }
       }
     } catch (error) {
