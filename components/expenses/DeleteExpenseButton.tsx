@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { queryKeys } from '@/lib/queries/keys'
+import { toast } from 'react-toastify'
 
 interface DeleteExpenseButtonProps {
   expenseId: string
@@ -13,6 +16,7 @@ export function DeleteExpenseButton({ expenseId, groupId }: DeleteExpenseButtonP
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const handleDelete = async () => {
     setLoading(true)
@@ -27,17 +31,37 @@ export function DeleteExpenseButton({ expenseId, groupId }: DeleteExpenseButtonP
 
       if (error) {
         console.error('Error deleting expense:', error)
-        alert('Failed to delete expense: ' + error.message)
+        toast.error('Failed to delete expense: ' + error.message, {
+          position: 'top-right',
+          autoClose: 3000,
+        })
         setLoading(false)
         return
       }
 
+      // Immediately invalidate and refetch expenses and balances
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.expenses.list(groupId),
+        refetchType: 'active'
+      })
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.balances.all,
+        refetchType: 'active'
+      })
+
+      toast.success('Expense deleted successfully!', {
+        position: 'top-right',
+        autoClose: 2000,
+      })
+
       // Redirect to expenses list
       router.push(`/groups/${groupId}/expenses`)
-      router.refresh()
     } catch (err: any) {
       console.error('Unexpected error:', err)
-      alert('An unexpected error occurred')
+      toast.error('An unexpected error occurred', {
+        position: 'top-right',
+        autoClose: 3000,
+      })
       setLoading(false)
     }
   }

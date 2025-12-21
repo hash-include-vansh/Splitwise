@@ -61,6 +61,16 @@ export default function BalancesPage() {
     }
 
     fetchBalances()
+
+    // Refetch on window focus for real-time updates
+    const handleFocus = () => {
+      fetchBalances()
+    }
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [groupId])
 
   if (loading || authLoading) {

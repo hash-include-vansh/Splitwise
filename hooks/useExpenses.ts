@@ -14,9 +14,11 @@ export function useGroupExpenses(groupId: string) {
       if (error) throw error
       return data || []
     },
-    staleTime: 0, // Always refetch when invalidated
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnMount: true, // Refetch when component mounts
+    staleTime: 0, // Data is immediately stale - always refetch
+    gcTime: 0, // Don't cache - remove from cache immediately when unused
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnReconnect: true, // Refetch when network reconnects
   })
 }
 
@@ -28,6 +30,11 @@ export function useExpenseDetails(expenseId: string) {
       if (error) throw error
       return data
     },
+    staleTime: 0, // Data is immediately stale - always refetch
+    gcTime: 0, // Don't cache - remove from cache immediately when unused
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnReconnect: true, // Refetch when network reconnects
   })
 }
 
