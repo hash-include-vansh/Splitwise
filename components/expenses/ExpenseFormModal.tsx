@@ -195,7 +195,7 @@ export function ExpenseFormModal({
       }))
     }
 
-    const validationResult = validateSplits(amountNum, splits, splitType)
+    const validationResult = validateSplits(amountNum, splits)
     if (!validationResult.valid) {
       setError(validationResult.error || 'Invalid split configuration')
       setLoading(false)
