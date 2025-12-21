@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { PrefetchLink } from '@/components/ui/PrefetchLink'
 import type { Expense } from '@/lib/types'
 import { Avatar } from '@/components/ui/Avatar'
 import { Receipt } from 'lucide-react'
@@ -13,9 +13,10 @@ export function ExpenseCard({ expense, groupId }: ExpenseCardProps) {
   const totalOwed = expense.splits?.reduce((sum, split) => sum + split.owed_amount, 0) || 0
 
   return (
-    <Link
+    <PrefetchLink
       href={`/groups/${groupId}/expenses/${expense.id}`}
       className="group block rounded-xl bg-white border border-gray-200/60 p-4 shadow-elegant hover:shadow-medium hover:border-gray-300/60 transition-all duration-200"
+      prefetch={true}
     >
       <div className="flex items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -60,7 +61,7 @@ export function ExpenseCard({ expense, groupId }: ExpenseCardProps) {
           )}
         </div>
       </div>
-    </Link>
+    </PrefetchLink>
   )
 }
 

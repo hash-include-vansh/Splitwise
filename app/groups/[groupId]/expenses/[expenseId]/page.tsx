@@ -2,25 +2,25 @@ import { createClient } from '@/lib/supabase/server'
 import { getExpenseDetails } from '@/lib/services/expenses'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { DeleteExpenseButton } from '@/components/expenses/DeleteExpenseButton'
 import { Avatar } from '@/components/ui/Avatar'
+import { ExpenseDetailSkeleton } from '@/components/ui/Skeleton'
 import { Receipt, User, Users } from 'lucide-react'
 
-export default async function ExpenseDetailPage({
-  params,
-}: {
-  params: Promise<{ groupId: string; expenseId: string }>
+// Force dynamic rendering - no caching, always fetch from database
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+async function ExpenseDetailContent({ 
+  groupId, 
+  expenseId, 
+  userId 
+}: { 
+  groupId: string
+  expenseId: string
+  userId: string
 }) {
-  const { groupId, expenseId } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
   const { data: expense, error } = await getExpenseDetails(expenseId)
 
   if (error || !expense) {
@@ -36,10 +36,10 @@ export default async function ExpenseDetailPage({
     )
   }
 
-  const canDelete = expense.paid_by === user.id
+  const canDelete = expense.paid_by === userId
 
   return (
-    <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
+    <>
       <div className="mb-6">
         <Link
           href={`/groups/${groupId}/expenses`}
@@ -136,6 +136,30 @@ export default async function ExpenseDetailPage({
           </div>
         </div>
       </div>
+    </>
+  )
+}
+
+export default async function ExpenseDetailPage({
+  params,
+}: {
+  params: Promise<{ groupId: string; expenseId: string }>
+}) {
+  const { groupId, expenseId } = await params
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
+      <Suspense fallback={<ExpenseDetailSkeleton />}>
+        <ExpenseDetailContent groupId={groupId} expenseId={expenseId} userId={user.id} />
+      </Suspense>
     </div>
   )
 }

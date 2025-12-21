@@ -24,6 +24,52 @@ export function PrefetchLink({
 }: PrefetchLinkProps) {
   const queryClient = useQueryClient()
 
+  const prefetchExpenseDetail = async (groupId: string, expenseId: string) => {
+    const supabase = createClient()
+    
+    // Prefetch expense detail data - no caching, always fresh
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.expenses.detail(expenseId),
+      queryFn: async () => {
+        // Get expense
+        const { data: expense, error: expenseError } = await supabase
+          .from('expenses')
+          .select('*')
+          .eq('id', expenseId)
+          .single()
+
+        if (expenseError || !expense) throw expenseError || new Error('Expense not found')
+
+        // Get paid_by user
+        const { data: paidByUser } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', expense.paid_by)
+          .single()
+
+        // Get splits with users
+        const { data: splits } = await supabase
+          .from('expense_splits')
+          .select(`
+            *,
+            user:users (*)
+          `)
+          .eq('expense_id', expenseId)
+
+        return {
+          ...expense,
+          paid_by_user: paidByUser || null,
+          splits: splits?.map((split: any) => ({
+            ...split,
+            user: split.user || null,
+          })) || [],
+        }
+      },
+      staleTime: 0, // No caching - always fresh
+      gcTime: 0, // Don't cache
+    })
+  }
+
   const prefetchExpenses = async (groupId: string) => {
     const supabase = createClient()
     
@@ -84,17 +130,26 @@ export function PrefetchLink({
           })) || [],
         }))
       },
-      staleTime: 5 * 60 * 1000,
+      staleTime: 0, // No caching - always fresh
+      gcTime: 0, // Don't cache
     })
   }
 
   const handleMouseEnter = () => {
-    if (prefetch && href.includes('/expenses')) {
-      // Extract groupId from href
-      const match = href.match(/\/groups\/([^/]+)\/expenses/)
-      if (match) {
-        const groupId = match[1]
-        prefetchExpenses(groupId)
+    if (prefetch) {
+      // Check if it's an expense detail page
+      const expenseDetailMatch = href.match(/\/groups\/([^/]+)\/expenses\/([^/]+)/)
+      if (expenseDetailMatch) {
+        const [, groupId, expenseId] = expenseDetailMatch
+        prefetchExpenseDetail(groupId, expenseId)
+      } 
+      // Check if it's expenses list page
+      else if (href.includes('/expenses') && !href.includes('/expenses/')) {
+        const match = href.match(/\/groups\/([^/]+)\/expenses/)
+        if (match) {
+          const groupId = match[1]
+          prefetchExpenses(groupId)
+        }
       }
     }
     props.onMouseEnter?.()
@@ -102,11 +157,20 @@ export function PrefetchLink({
 
   const handleTouchStart = () => {
     // On mobile, prefetch on touch start (before click)
-    if (prefetch && href.includes('/expenses')) {
-      const match = href.match(/\/groups\/([^/]+)\/expenses/)
-      if (match) {
-        const groupId = match[1]
-        prefetchExpenses(groupId)
+    if (prefetch) {
+      // Check if it's an expense detail page
+      const expenseDetailMatch = href.match(/\/groups\/([^/]+)\/expenses\/([^/]+)/)
+      if (expenseDetailMatch) {
+        const [, groupId, expenseId] = expenseDetailMatch
+        prefetchExpenseDetail(groupId, expenseId)
+      }
+      // Check if it's expenses list page
+      else if (href.includes('/expenses') && !href.includes('/expenses/')) {
+        const match = href.match(/\/groups\/([^/]+)\/expenses/)
+        if (match) {
+          const groupId = match[1]
+          prefetchExpenses(groupId)
+        }
       }
     }
   }
