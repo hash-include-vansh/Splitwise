@@ -93,11 +93,8 @@ export function ExpenseForm({ groupId, members, currentUserId }: ExpenseFormProp
     let splits: Array<{ user_id: string; owed_amount: number }> = []
 
     if (splitType === 'equal') {
-      const splitAmount = amountNum / availableMembers.length
-      splits = availableMembers.map((m) => ({
-        user_id: m.user_id,
-        owed_amount: splitAmount,
-      }))
+      // Use calculateEqualSplit which handles rounding errors by adjusting the last split
+      splits = calculateEqualSplit(amountNum, availableMembers.map(m => m.user_id))
     } else if (splitType === 'unequal') {
       const amounts = splitConfig.amounts || {}
       splits = Object.entries(amounts)

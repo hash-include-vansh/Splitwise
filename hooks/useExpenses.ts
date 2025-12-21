@@ -47,16 +47,23 @@ export function useCreateExpense() {
       if (error) throw error
       return expense
     },
-    onSuccess: (expense, variables) => {
+    onSuccess: async (expense, variables) => {
       // Immediately invalidate and refetch expenses
-      queryClient.invalidateQueries({ 
+      await Promise.all([
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.expenses.list(variables.group_id),
+          refetchType: 'active'
+        }),
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.balances.all,
+          refetchType: 'active'
+        })
+      ])
+      
+      // Explicitly refetch to ensure UI updates immediately
+      await queryClient.refetchQueries({ 
         queryKey: queryKeys.expenses.list(variables.group_id),
-        refetchType: 'active' // Only refetch active queries
-      })
-      // Invalidate balances
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.balances.all,
-        refetchType: 'active'
+        type: 'active'
       })
     },
   })

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { queryKeys } from '@/lib/queries/keys'
@@ -16,6 +16,7 @@ export function DeleteExpenseButton({ expenseId, groupId }: DeleteExpenseButtonP
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   const queryClient = useQueryClient()
 
   const handleDelete = async () => {
@@ -40,13 +41,21 @@ export function DeleteExpenseButton({ expenseId, groupId }: DeleteExpenseButtonP
       }
 
       // Immediately invalidate and refetch expenses and balances
-      queryClient.invalidateQueries({ 
+      await Promise.all([
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.expenses.list(groupId),
+          refetchType: 'active'
+        }),
+        queryClient.invalidateQueries({ 
+          queryKey: queryKeys.balances.all,
+          refetchType: 'active'
+        })
+      ])
+
+      // Explicitly refetch to ensure UI updates immediately
+      await queryClient.refetchQueries({ 
         queryKey: queryKeys.expenses.list(groupId),
-        refetchType: 'active'
-      })
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.balances.all,
-        refetchType: 'active'
+        type: 'active'
       })
 
       toast.success('Expense deleted successfully!', {
@@ -54,8 +63,13 @@ export function DeleteExpenseButton({ expenseId, groupId }: DeleteExpenseButtonP
         autoClose: 2000,
       })
 
-      // Redirect to expenses list
-      router.push(`/groups/${groupId}/expenses`)
+      setLoading(false)
+      
+      // Only redirect if we're on the expense detail page, not the list page
+      const isOnExpenseDetailPage = pathname?.includes(`/expenses/${expenseId}`)
+      if (isOnExpenseDetailPage) {
+        router.push(`/groups/${groupId}/expenses`)
+      }
     } catch (err: any) {
       console.error('Unexpected error:', err)
       toast.error('An unexpected error occurred', {
