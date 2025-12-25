@@ -1,6 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+// 1 week in seconds (7 days * 24 hours * 60 minutes * 60 seconds)
+const ONE_WEEK_IN_SECONDS = 7 * 24 * 60 * 60
+
 export async function createClient() {
   const cookieStore = await cookies()
 
@@ -14,9 +17,19 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // Set maxAge to 1 week for auth-related cookies if not already set
+              const isAuthCookie = name.includes('auth') || name.startsWith('sb-')
+              const maxAge = options?.maxAge || (isAuthCookie ? ONE_WEEK_IN_SECONDS : undefined)
+              
+              cookieStore.set(name, value, {
+                ...options,
+                maxAge: maxAge,
+                httpOnly: options?.httpOnly ?? true,
+                sameSite: options?.sameSite ?? 'lax',
+                secure: options?.secure ?? process.env.NODE_ENV === 'production',
+              })
+            })
           } catch {
             // The `setAll` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
