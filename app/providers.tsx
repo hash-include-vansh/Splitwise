@@ -1,9 +1,10 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { createClient } from '@/lib/supabase/client'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -23,6 +24,32 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       })
   )
+
+  // Set up session refresh to keep user logged in
+  useEffect(() => {
+    const supabase = createClient()
+    
+    // Start auto-refresh
+    supabase.auth.startAutoRefresh()
+
+    // Periodically refresh session (every 30 minutes) to ensure it stays alive
+    const refreshInterval = setInterval(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          // Refresh the session to extend its lifetime
+          await supabase.auth.refreshSession()
+        }
+      } catch (error) {
+          console.error('Error refreshing session:', error)
+        }
+      }, 30 * 60 * 1000) // 30 minutes
+
+    return () => {
+      clearInterval(refreshInterval)
+      supabase.auth.stopAutoRefresh()
+    }
+  }, [])
 
   return (
     <QueryClientProvider client={queryClient}>

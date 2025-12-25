@@ -18,18 +18,16 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          // Create a new response for each setAll call to ensure cookies are properly set
           supabaseResponse = NextResponse.next({
             request,
           })
+          
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Set maxAge to 1 week for auth-related cookies if not already set
-            // Supabase cookies typically include: sb-*, supabase.auth.token, etc.
-            const isAuthCookie = name.includes('auth') || 
-                                name.startsWith('sb-') || 
-                                name.includes('supabase') ||
-                                name.includes('token')
-            const maxAge = options?.maxAge || (isAuthCookie ? ONE_WEEK_IN_SECONDS : undefined)
+            // Supabase SSR uses cookies starting with 'sb-' followed by project ref
+            // Set maxAge to 1 week for ALL Supabase cookies (they all start with 'sb-')
+            const isSupabaseCookie = name.startsWith('sb-')
+            const maxAge = isSupabaseCookie ? ONE_WEEK_IN_SECONDS : options?.maxAge
             
             supabaseResponse.cookies.set(name, value, {
               ...options,
@@ -48,6 +46,8 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
+  // getUser() automatically refreshes the session if needed
+  // This call will trigger setAll if the session needs to be refreshed
   const {
     data: { user },
   } = await supabase.auth.getUser()
