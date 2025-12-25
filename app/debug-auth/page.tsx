@@ -31,9 +31,31 @@ export default async function DebugAuthPage() {
 
         <div>
           <h2 className="font-semibold">Session:</h2>
-          <pre className="bg-gray-100 p-2 rounded">
-            {session ? JSON.stringify({ access_token: session.access_token?.substring(0, 20) + '...', expires_at: session.expires_at }, null, 2) : 'No session'}
-          </pre>
+          {session ? (
+            <div className="space-y-2">
+              <pre className="bg-gray-100 p-2 rounded">
+                {JSON.stringify({ 
+                  access_token: session.access_token?.substring(0, 20) + '...', 
+                  expires_at: session.expires_at,
+                  expires_in: session.expires_in,
+                  refresh_token: session.refresh_token ? session.refresh_token.substring(0, 20) + '...' : null,
+                  token_type: session.token_type
+                }, null, 2)}
+              </pre>
+              {session.expires_at && (
+                <div className="text-sm">
+                  <p className="font-semibold">Session Expiration:</p>
+                  <p>Expires at: {new Date(session.expires_at * 1000).toLocaleString()}</p>
+                  <p>Time until expiration: {Math.round((session.expires_at * 1000 - Date.now()) / 1000 / 60)} minutes</p>
+                  {session.expires_in && (
+                    <p>Expires in: {Math.round(session.expires_in / 60)} minutes</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <pre className="bg-gray-100 p-2 rounded">No session</pre>
+          )}
           {sessionError && (
             <p className="text-red-600">Error: {sessionError.message}</p>
           )}

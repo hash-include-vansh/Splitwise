@@ -19,7 +19,11 @@ export async function createClient() {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               // Set maxAge to 1 week for auth-related cookies if not already set
-              const isAuthCookie = name.includes('auth') || name.startsWith('sb-')
+              // Supabase cookies typically include: sb-*, supabase.auth.token, etc.
+              const isAuthCookie = name.includes('auth') || 
+                                  name.startsWith('sb-') || 
+                                  name.includes('supabase') ||
+                                  name.includes('token')
               const maxAge = options?.maxAge || (isAuthCookie ? ONE_WEEK_IN_SECONDS : undefined)
               
               cookieStore.set(name, value, {
