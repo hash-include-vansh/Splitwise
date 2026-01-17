@@ -29,24 +29,54 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient()
     
-    // Start auto-refresh
+    // Start auto-refresh - this handles automatic token refresh before expiration
     supabase.auth.startAutoRefresh()
 
-    // Periodically refresh session (every 30 minutes) to ensure it stays alive
-    const refreshInterval = setInterval(async () => {
+    // Function to refresh session
+    const refreshSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) {
+          console.error('Error getting session:', sessionError)
+          return
+        }
         if (session) {
-          // Refresh the session to extend its lifetime
-          await supabase.auth.refreshSession()
+          // Refresh the session with the current session to extend its lifetime
+          // This is critical - passing the session ensures the refresh token is used correctly
+          const { error: refreshError } = await supabase.auth.refreshSession(session)
+          if (refreshError) {
+            console.error('Error refreshing session:', refreshError)
+          }
         }
       } catch (error) {
-          console.error('Error refreshing session:', error)
-        }
-      }, 30 * 60 * 1000) // 30 minutes
+        console.error('Error refreshing session:', error)
+      }
+    }
+
+    // Periodically refresh session proactively to prevent expiration
+    // Supabase sessions typically expire after 1 hour, so refresh every 50 minutes
+    // This ensures we refresh before expiration
+    const refreshInterval = setInterval(refreshSession, 50 * 60 * 1000) // 50 minutes
+
+    // Refresh session when page becomes visible (user returns to tab)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshSession()
+      }
+    }
+
+    // Refresh session when window gains focus (user switches back to window)
+    const handleFocus = () => {
+      refreshSession()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
 
     return () => {
       clearInterval(refreshInterval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
       supabase.auth.stopAutoRefresh()
     }
   }, [])

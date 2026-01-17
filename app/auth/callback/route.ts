@@ -66,9 +66,18 @@ export async function GET(request: Request) {
     // Create redirect response
     const response = NextResponse.redirect(new URL('/groups', origin))
     
-    // Ensure all cookies are copied to the response
+    // Ensure all cookies are copied to the response with proper maxAge settings
     cookieStore.getAll().forEach((cookie) => {
-      response.cookies.set(cookie.name, cookie.value)
+      const isSupabaseCookie = cookie.name.startsWith('sb-')
+      const maxAge = isSupabaseCookie ? ONE_WEEK_IN_SECONDS : undefined
+      
+      response.cookies.set(cookie.name, cookie.value, {
+        maxAge: maxAge,
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+      })
     })
 
     return response
