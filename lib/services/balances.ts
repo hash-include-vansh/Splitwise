@@ -1,6 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
-import type { RawBalance, SimplifiedDebt, UserNetBalance } from '@/lib/types'
+import type { RawBalance, SimplifiedDebt, UserNetBalance, Payment } from '@/lib/types'
 import { simplifyDebts } from '@/lib/utils/debtSimplification'
+
+// Helper function to get accepted payments for a group
+async function getAcceptedPayments(groupId: string): Promise<Payment[]> {
+  const supabase = await createClient()
+  const { data: payments } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('group_id', groupId)
+    .eq('status', 'accepted')
+  
+  return (payments || []) as Payment[]
+}
 
 export async function calculateRawBalances(
   groupId: string
@@ -24,6 +36,9 @@ export async function calculateRawBalances(
   if (expensesError) {
     return { data: null, error: expensesError }
   }
+
+  // Get accepted payments to subtract from balances
+  const acceptedPayments = await getAcceptedPayments(groupId)
 
   // Calculate balances: payer is credited, others owe
   const balances: Map<string, Map<string, number>> = new Map()
@@ -60,6 +75,28 @@ export async function calculateRawBalances(
       const currentOwe = oweBalances.get(payerId) || 0
       oweBalances.set(payerId, currentOwe - amount)
     })
+  })
+
+  // Subtract accepted payments from balances
+  // Payment: debtor paid creditor, so reduce what debtor owes to creditor
+  acceptedPayments.forEach((payment) => {
+    const debtorId = payment.debtor_id
+    const creditorId = payment.creditor_id
+    const amount = payment.amount
+
+    // Reduce creditor's claim on debtor
+    if (balances.has(creditorId)) {
+      const creditorBalances = balances.get(creditorId)!
+      const currentCredit = creditorBalances.get(debtorId) || 0
+      creditorBalances.set(debtorId, currentCredit - amount)
+    }
+
+    // Reduce debtor's debt to creditor
+    if (balances.has(debtorId)) {
+      const debtorBalances = balances.get(debtorId)!
+      const currentDebt = debtorBalances.get(creditorId) || 0
+      debtorBalances.set(creditorId, currentDebt + amount)
+    }
   })
 
   // Convert to RawBalance array
@@ -161,6 +198,9 @@ export async function calculateNetBalances(
     return { data: null, error: expensesError }
   }
 
+  // Get accepted payments to subtract from balances
+  const acceptedPayments = await getAcceptedPayments(groupId)
+
   // Calculate net balance per user
   const netBalances: Map<string, number> = new Map()
 
@@ -180,6 +220,18 @@ export async function calculateNetBalances(
       const currentOwe = netBalances.get(oweId) || 0
       netBalances.set(oweId, currentOwe - amount)
     })
+  })
+
+  // Apply accepted payments to net balances
+  // When debtor pays creditor:
+  // - Debtor's net balance increases (less negative / more positive)
+  // - Creditor's net balance decreases (less positive / more negative)
+  acceptedPayments.forEach((payment) => {
+    const debtorBalance = netBalances.get(payment.debtor_id) || 0
+    const creditorBalance = netBalances.get(payment.creditor_id) || 0
+    
+    netBalances.set(payment.debtor_id, debtorBalance + payment.amount)
+    netBalances.set(payment.creditor_id, creditorBalance - payment.amount)
   })
 
   // Convert to UserNetBalance array

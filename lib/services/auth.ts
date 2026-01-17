@@ -1,11 +1,18 @@
 import { createClient } from '@/lib/supabase/client'
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(redirectTo?: string) {
   const supabase = createClient()
+  
+  // Build the callback URL with optional redirect parameter
+  let callbackUrl = `${window.location.origin}/auth/callback`
+  if (redirectTo) {
+    callbackUrl += `?redirect=${encodeURIComponent(redirectTo)}`
+  }
+  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: callbackUrl,
     },
   })
   return { data, error }
@@ -13,8 +20,31 @@ export async function signInWithGoogle() {
 
 export async function signOut() {
   const supabase = createClient()
-  const { error } = await supabase.auth.signOut()
-  return { error }
+  
+  try {
+    // First try the normal signOut
+    const { error } = await supabase.auth.signOut()
+    
+    // Even if signOut fails, clear all Supabase cookies manually
+    // This ensures the user is logged out even if the API call fails
+    document.cookie.split(';').forEach(cookie => {
+      const name = cookie.split('=')[0].trim()
+      if (name.startsWith('sb-')) {
+        document.cookie = `${name}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+      }
+    })
+    
+    return { error }
+  } catch (err) {
+    // On any error, still clear cookies
+    document.cookie.split(';').forEach(cookie => {
+      const name = cookie.split('=')[0].trim()
+      if (name.startsWith('sb-')) {
+        document.cookie = `${name}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+      }
+    })
+    return { error: err as Error }
+  }
 }
 
 export async function getCurrentUser() {

@@ -73,7 +73,7 @@ export default function BalancesPage() {
     }
   }, [groupId])
 
-  if (loading || authLoading) {
+  if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-12">
@@ -123,7 +123,7 @@ export default function BalancesPage() {
       </div>
 
       {simplified ? (
-        <SimplifiedDebtView debts={simplifiedDebts} />
+        <SimplifiedDebtView debts={simplifiedDebts} groupId={groupId} />
       ) : (
         <div>
           <div className="mb-4">

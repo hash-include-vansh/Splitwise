@@ -1,8 +1,32 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import type { RawBalance, SimplifiedDebt, UserNetBalance } from '@/lib/types'
+import type { RawBalance, SimplifiedDebt, UserNetBalance, Payment } from '@/lib/types'
 import { simplifyDebts } from '@/lib/utils/debtSimplification'
+
+// Helper function to get accepted payments for a group
+// Returns empty array if payments table doesn't exist yet
+async function getAcceptedPayments(groupId: string): Promise<Payment[]> {
+  try {
+    const supabase = createClient()
+    const { data: payments, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('group_id', groupId)
+      .eq('status', 'accepted')
+    
+    // If table doesn't exist, just return empty array
+    if (error) {
+      console.log('Payments table not available:', error.message)
+      return []
+    }
+    
+    return (payments || []) as Payment[]
+  } catch (err) {
+    console.log('Error fetching payments:', err)
+    return []
+  }
+}
 
 export async function calculateRawBalances(
   groupId: string
@@ -26,6 +50,9 @@ export async function calculateRawBalances(
   if (expensesError) {
     return { data: null, error: expensesError }
   }
+
+  // Get accepted payments to subtract from balances
+  const acceptedPayments = await getAcceptedPayments(groupId)
 
   // Calculate raw balances: track all pairwise debts from each expense
   // This shows who owes whom from each individual expense
@@ -57,15 +84,31 @@ export async function calculateRawBalances(
     })
   })
 
-  // Convert to RawBalance array
+  // Build a map of payments by debtor-creditor pair
+  const paymentsMap = new Map<string, number>()
+  acceptedPayments.forEach((payment) => {
+    const key = `${payment.debtor_id}|${payment.creditor_id}`
+    const current = paymentsMap.get(key) || 0
+    paymentsMap.set(key, current + payment.amount)
+  })
+
+  // Convert to RawBalance array (include settled balances too)
   const rawBalances: RawBalance[] = []
   rawBalancesMap.forEach((toUserMap, fromUserId) => {
-    toUserMap.forEach((amount, toUserId) => {
-      if (amount > 0.01) {
+    toUserMap.forEach((originalAmount, toUserId) => {
+      if (originalAmount > 0.01) {
+        const paidKey = `${fromUserId}|${toUserId}`
+        const paidAmount = paymentsMap.get(paidKey) || 0
+        const remainingAmount = originalAmount - paidAmount
+        const isSettled = remainingAmount <= 0.01
+        
         rawBalances.push({
           from_user_id: fromUserId,
           to_user_id: toUserId,
-          amount: Math.round((amount + Number.EPSILON) * 100) / 100,
+          amount: Math.max(0, Math.round((remainingAmount + Number.EPSILON) * 100) / 100),
+          originalAmount: Math.round((originalAmount + Number.EPSILON) * 100) / 100,
+          paidAmount: Math.round((paidAmount + Number.EPSILON) * 100) / 100,
+          isSettled,
         })
       }
     })
@@ -99,24 +142,74 @@ export async function calculateRawBalances(
 export async function calculateSimplifiedBalances(
   groupId: string
 ): Promise<{ data: SimplifiedDebt[] | null; error: Error | null }> {
+  const supabase = createClient()
+  
   // First calculate net balances
   const { data: netBalances, error: netError } = await calculateNetBalances(groupId)
   if (netError || !netBalances) {
     return { data: null, error: netError || new Error('Failed to calculate net balances') }
   }
 
-  // Simplify debts
+  // Simplify debts (active, non-zero balances)
   const simplified = simplifyDebts(netBalances)
+
+  // Also fetch settled payments to show as settled balances
+  let settledBalances: SimplifiedDebt[] = []
+  try {
+    // Get all accepted payments grouped by debtor-creditor pair
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('debtor_id, creditor_id, amount')
+      .eq('group_id', groupId)
+      .eq('status', 'accepted')
+    
+    if (payments && payments.length > 0) {
+      // Group payments by debtor-creditor pair
+      const settledMap = new Map<string, { debtorId: string, creditorId: string, amount: number }>()
+      
+      payments.forEach((p: any) => {
+        const key = `${p.debtor_id}|${p.creditor_id}`
+        const existing = settledMap.get(key) || { debtorId: p.debtor_id, creditorId: p.creditor_id, amount: 0 }
+        existing.amount += p.amount
+        settledMap.set(key, existing)
+      })
+      
+      // Check which ones are fully settled (not in active simplified debts)
+      settledMap.forEach((settled) => {
+        // Check if this pair exists in active debts
+        const activeDebt = simplified.find(
+          d => d.from_user_id === settled.debtorId && d.to_user_id === settled.creditorId
+        )
+        
+        // If no active debt, this is a fully settled balance
+        if (!activeDebt) {
+          settledBalances.push({
+            from_user_id: settled.debtorId,
+            to_user_id: settled.creditorId,
+            amount: 0,
+            originalAmount: settled.amount,
+            paidAmount: settled.amount,
+            isSettled: true,
+          })
+        }
+      })
+    }
+  } catch (err) {
+    // Ignore errors from payments table - just don't show settled balances
+    console.log('Could not fetch settled payments:', err)
+  }
+
+  // Combine active and settled balances
+  const allDebts = [...simplified, ...settledBalances]
 
   // Fetch user details
   const userIds = new Set<string>()
-  simplified.forEach((d) => {
+  allDebts.forEach((d) => {
     userIds.add(d.from_user_id)
     userIds.add(d.to_user_id)
   })
 
   if (userIds.size > 0) {
-    const supabase = createClient()
     const { data: users } = await supabase
       .from('users')
       .select('*')
@@ -124,13 +217,13 @@ export async function calculateSimplifiedBalances(
 
     const userMap = new Map(users?.map((u: any) => [u.id, u]) || [])
 
-    simplified.forEach((debt) => {
+    allDebts.forEach((debt) => {
       debt.from_user = userMap.get(debt.from_user_id) || undefined
       debt.to_user = userMap.get(debt.to_user_id) || undefined
     })
   }
 
-  return { data: simplified, error: null }
+  return { data: allDebts, error: null }
 }
 
 export async function calculateNetBalances(
@@ -155,6 +248,9 @@ export async function calculateNetBalances(
   if (expensesError) {
     return { data: null, error: expensesError }
   }
+
+  // Get accepted payments to subtract from balances
+  const acceptedPayments = await getAcceptedPayments(groupId)
 
   // Calculate net balance per user
   // Rule: Never include "owes to self" - a person's own share doesn't affect their net balance
@@ -186,6 +282,15 @@ export async function calculateNetBalances(
       const currentOwe = netBalances.get(oweId) || 0
       netBalances.set(oweId, currentOwe - amount)
     })
+  })
+
+  // Apply accepted payments to net balances
+  acceptedPayments.forEach((payment) => {
+    const debtorBalance = netBalances.get(payment.debtor_id) || 0
+    const creditorBalance = netBalances.get(payment.creditor_id) || 0
+    
+    netBalances.set(payment.debtor_id, debtorBalance + payment.amount)
+    netBalances.set(payment.creditor_id, creditorBalance - payment.amount)
   })
 
   // Convert to UserNetBalance array

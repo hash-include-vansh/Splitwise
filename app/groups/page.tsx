@@ -27,7 +27,7 @@ async function GroupsContent() {
         <p className="text-sm sm:text-base text-gray-600 font-medium mb-4">
           {groups?.length || 0} {groups?.length === 1 ? 'group' : 'groups'}
         </p>
-        <CreateGroupButton />
+        <CreateGroupButton initialUser={user} />
       </div>
       <GroupList groups={groups || []} />
     </>

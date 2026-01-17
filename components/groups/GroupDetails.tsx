@@ -9,9 +9,10 @@ interface GroupDetailsProps {
   group: Group & { members: GroupMember[] }
   currentUserId?: string
   onRemoveMember?: (userId: string) => void
+  onMemberAdded?: () => void
 }
 
-export function GroupDetails({ group, currentUserId, onRemoveMember }: GroupDetailsProps) {
+export function GroupDetails({ group, currentUserId, onRemoveMember, onMemberAdded }: GroupDetailsProps) {
   const isAdmin = group.members.some(
     (m) => m.user_id === currentUserId && m.role === 'admin'
   )
@@ -64,7 +65,9 @@ export function GroupDetails({ group, currentUserId, onRemoveMember }: GroupDeta
         <MemberList
           members={group.members}
           currentUserId={currentUserId}
+          groupId={group.id}
           onRemoveMember={isAdmin ? onRemoveMember : undefined}
+          onMemberAdded={onMemberAdded}
           showHeader={true}
         />
         {isAdmin && <InviteMember groupId={group.id} />}

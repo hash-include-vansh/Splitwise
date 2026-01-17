@@ -3,13 +3,17 @@
 import { signInWithGoogle } from '@/lib/services/auth'
 import { useState } from 'react'
 
-export function LoginButton() {
+interface LoginButtonProps {
+  redirectTo?: string
+}
+
+export function LoginButton({ redirectTo }: LoginButtonProps) {
   const [loading, setLoading] = useState(false)
 
   const handleSignIn = async () => {
     setLoading(true)
     try {
-      await signInWithGoogle()
+      await signInWithGoogle(redirectTo)
     } catch (error) {
       console.error('Error signing in:', error)
     } finally {

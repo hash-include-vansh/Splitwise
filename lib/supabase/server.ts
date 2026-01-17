@@ -26,7 +26,9 @@ export async function createClient() {
               cookieStore.set(name, value, {
                 ...options,
                 maxAge: maxAge,
-                httpOnly: options?.httpOnly ?? true,
+                // IMPORTANT: Don't set httpOnly for Supabase cookies
+                // The browser client needs to read them
+                httpOnly: false,
                 sameSite: options?.sameSite ?? 'lax',
                 secure: options?.secure ?? process.env.NODE_ENV === 'production',
               })

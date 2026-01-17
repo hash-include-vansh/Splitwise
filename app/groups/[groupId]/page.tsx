@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { getGroupDetails, removeMember } from '@/lib/services/groups'
-import { GroupDetails } from '@/components/groups/GroupDetails'
+import { getGroupDetails } from '@/lib/services/groups'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { GroupListSkeleton } from '@/components/ui/Skeleton'
+import { GroupDetailClient } from './GroupDetailClient'
 
 async function GroupDetailContent({ groupId, userId }: { groupId: string; userId: string }) {
   const { data: group } = await getGroupDetails(groupId)
@@ -17,25 +17,10 @@ async function GroupDetailContent({ groupId, userId }: { groupId: string; userId
     )
   }
 
-  async function handleRemoveMember(userIdToRemove: string) {
-    'use server'
-    const supabase = await createClient()
-    const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser()
-    
-    if (!currentUser) {
-      throw new Error('Not authenticated')
-    }
-    
-    await removeMember(groupId, userIdToRemove, currentUser.id)
-  }
-
   return (
-    <GroupDetails
-      group={group}
+    <GroupDetailClient
+      initialGroup={group}
       currentUserId={userId}
-      onRemoveMember={handleRemoveMember}
     />
   )
 }

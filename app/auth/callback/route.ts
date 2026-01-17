@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { joinGroup } from '@/lib/services/groups'
 
 // 1 week in seconds (7 days * 24 hours * 60 minutes * 60 seconds)
 const ONE_WEEK_IN_SECONDS = 7 * 24 * 60 * 60
@@ -8,6 +9,7 @@ const ONE_WEEK_IN_SECONDS = 7 * 24 * 60 * 60
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const redirectTo = requestUrl.searchParams.get('redirect')
   const origin = requestUrl.origin
   const error = requestUrl.searchParams.get('error')
 
@@ -38,7 +40,9 @@ export async function GET(request: Request) {
                 cookieStore.set(name, value, {
                   ...options,
                   maxAge: maxAge,
-                  httpOnly: options?.httpOnly ?? true,
+                  // IMPORTANT: Don't set httpOnly for Supabase cookies
+                  // The browser client needs to read them
+                  httpOnly: false,
                   sameSite: options?.sameSite ?? 'lax',
                   secure: options?.secure ?? process.env.NODE_ENV === 'production',
                 })
@@ -63,8 +67,38 @@ export async function GET(request: Request) {
       )
     }
 
+    // Get the user for invite handling
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Determine the final redirect URL
+    let finalRedirectUrl = '/groups'
+
+    // Check if this is an invite link redirect - auto-join the group
+    if (redirectTo && redirectTo.startsWith('/invite/') && user) {
+      const inviteToken = redirectTo.replace('/invite/', '')
+      
+      try {
+        const { data: group, error: joinError } = await joinGroup(inviteToken, user.id)
+        
+        if (group && !joinError) {
+          // Successfully joined - redirect to the group
+          finalRedirectUrl = `/groups/${group.id}`
+        } else {
+          // Join failed - still redirect to the invite page to show error
+          finalRedirectUrl = redirectTo
+        }
+      } catch (err) {
+        console.error('Error joining group from invite:', err)
+        // On error, redirect to the original invite page
+        finalRedirectUrl = redirectTo
+      }
+    } else if (redirectTo) {
+      // For other redirects, just use the provided URL
+      finalRedirectUrl = redirectTo
+    }
+
     // Create redirect response
-    const response = NextResponse.redirect(new URL('/groups', origin))
+    const response = NextResponse.redirect(new URL(finalRedirectUrl, origin))
     
     // Ensure all cookies are copied to the response with proper maxAge settings
     cookieStore.getAll().forEach((cookie) => {
@@ -73,7 +107,9 @@ export async function GET(request: Request) {
       
       response.cookies.set(cookie.name, cookie.value, {
         maxAge: maxAge,
-        httpOnly: true,
+        // IMPORTANT: Don't set httpOnly for Supabase cookies
+        // The browser client needs to read them
+        httpOnly: false,
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
         path: '/',

@@ -147,6 +147,96 @@ export interface Database {
           created_at?: string
         }
       }
+      payments: {
+        Row: {
+          id: string
+          group_id: string
+          debtor_id: string
+          creditor_id: string
+          amount: number
+          status: 'pending' | 'accepted' | 'rejected'
+          marked_by: string
+          accepted_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          group_id: string
+          debtor_id: string
+          creditor_id: string
+          amount: number
+          status?: 'pending' | 'accepted' | 'rejected'
+          marked_by: string
+          accepted_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          group_id?: string
+          debtor_id?: string
+          creditor_id?: string
+          amount?: number
+          status?: 'pending' | 'accepted' | 'rejected'
+          marked_by?: string
+          accepted_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      friendships: {
+        Row: {
+          id: string
+          user1_id: string
+          user2_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user1_id: string
+          user2_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user1_id?: string
+          user2_id?: string
+          created_at?: string
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'group_created' | 'group_joined' | 'expense_added' | 'payment_pending' | 'payment_accepted' | 'payment_rejected' | 'friend_added' | 'group_settled'
+          title: string
+          message: string
+          metadata: Json
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: 'group_created' | 'group_joined' | 'expense_added' | 'payment_pending' | 'payment_accepted' | 'payment_rejected' | 'friend_added' | 'group_settled'
+          title: string
+          message: string
+          metadata?: Json
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: 'group_created' | 'group_joined' | 'expense_added' | 'payment_pending' | 'payment_accepted' | 'payment_rejected' | 'friend_added' | 'group_settled'
+          title?: string
+          message?: string
+          metadata?: Json
+          read?: boolean
+          created_at?: string
+        }
+      }
     }
   }
 }

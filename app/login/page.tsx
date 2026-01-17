@@ -3,15 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Wallet } from 'lucide-react'
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>
+}) {
+  const { redirect: redirectTo } = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // If user is already logged in, redirect to groups
+  // If user is already logged in, redirect to the target or groups
   if (user) {
-    redirect('/groups')
+    redirect(redirectTo || '/groups')
   }
 
   return (
@@ -29,7 +34,7 @@ export default async function LoginPage() {
           </p>
         </div>
         <div>
-          <LoginButton />
+          <LoginButton redirectTo={redirectTo} />
         </div>
       </div>
     </div>

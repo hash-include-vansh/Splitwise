@@ -1,42 +1,73 @@
 'use client'
 
-import { signOut, getCurrentUser } from '@/lib/services/auth'
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Avatar } from '@/components/ui/Avatar'
 import { ChevronDown } from 'lucide-react'
 
-export function UserMenu() {
-  const [user, setUser] = useState<User | null>(null)
-  const [userProfile, setUserProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [showMenu, setShowMenu] = useState(false)
+interface UserMenuProps {
+  initialUser?: User | null
+}
 
+export function UserMenu({ initialUser }: UserMenuProps) {
+  // Initialize with initialUser from server (if available)
+  const [user, setUser] = useState<User | null>(initialUser || null)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(!initialUser)
+  const [showMenu, setShowMenu] = useState(false)
+  
+  // Fetch user on mount
   useEffect(() => {
-    async function fetchUser() {
-      const { user } = await getCurrentUser()
-      setUser(user)
-      
-      // Fetch user profile from database
-      if (user) {
-        const supabase = createClient()
-        const { data } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .single()
+    let mounted = true
+    
+    async function fetchUserProfile(userId: string) {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      if (mounted && data) {
         setUserProfile(data)
       }
-      
-      setLoading(false)
     }
-    fetchUser()
-  }, [])
+    
+    async function fetchUser() {
+      try {
+        // Fetch from server API (server can read cookies properly)
+        const response = await fetch('/api/user')
+        const data = await response.json()
+        
+        if (mounted && data.user) {
+          setUser(data.user)
+          await fetchUserProfile(data.user.id)
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error)
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
+      }
+    }
+    
+    // If we have initialUser, just fetch the profile
+    if (initialUser) {
+      fetchUserProfile(initialUser.id)
+    } else {
+      // Otherwise fetch user from API
+      fetchUser()
+    }
+    
+    return () => {
+      mounted = false
+    }
+  }, [initialUser])
 
   const handleSignOut = async () => {
-    await signOut()
-    window.location.href = '/login'
+    // Use server-side signout to properly clear httpOnly cookies
+    window.location.href = '/auth/signout'
   }
 
   if (loading) {
@@ -47,7 +78,6 @@ export function UserMenu() {
     return null
   }
 
-  // Get avatar URL from user metadata or profile
   const avatarUrl = userProfile?.avatar_url || 
                     user.user_metadata?.avatar_url || 
                     user.user_metadata?.picture
@@ -97,4 +127,3 @@ export function UserMenu() {
     </div>
   )
 }
-

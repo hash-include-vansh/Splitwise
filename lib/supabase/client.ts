@@ -2,9 +2,6 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 
-// 1 week in seconds (7 days * 24 hours * 60 minutes * 60 seconds)
-const ONE_WEEK_IN_SECONDS = 7 * 24 * 60 * 60
-
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,24 +9,36 @@ export function createClient() {
     {
       cookies: {
         getAll() {
-          return document.cookie.split(';').map(cookie => {
-            const [name, ...rest] = cookie.trim().split('=')
-            return { name: name.trim(), value: rest.join('=').trim() }
-          }).filter(c => c.name)
+          // Parse all cookies from document.cookie
+          const cookies: { name: string; value: string }[] = []
+          if (typeof document !== 'undefined') {
+            document.cookie.split(';').forEach(cookie => {
+              const trimmed = cookie.trim()
+              if (trimmed) {
+                const eqIndex = trimmed.indexOf('=')
+                if (eqIndex > 0) {
+                  const name = trimmed.substring(0, eqIndex).trim()
+                  const value = trimmed.substring(eqIndex + 1).trim()
+                  if (name) {
+                    cookies.push({ name, value })
+                  }
+                }
+              }
+            })
+          }
+          return cookies
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            // Supabase SSR uses cookies starting with 'sb-' followed by project ref
-            // Set maxAge to 1 week for ALL Supabase cookies
-            const isSupabaseCookie = name.startsWith('sb-')
-            const maxAge = isSupabaseCookie ? ONE_WEEK_IN_SECONDS : options?.maxAge
-            
-            document.cookie = `${name}=${value}; path=${options?.path || '/'}; ${
-              maxAge ? `max-age=${maxAge}; ` : ''
-            }${options?.domain ? `domain=${options.domain}; ` : ''}${
-              options?.sameSite ? `samesite=${options.sameSite}; ` : ''
-            }${options?.secure ? 'secure; ' : ''}`
-          })
+          if (typeof document !== 'undefined') {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              let cookie = `${name}=${value}; path=${options?.path || '/'}`
+              if (options?.maxAge) cookie += `; max-age=${options.maxAge}`
+              else cookie += '; max-age=604800' // 1 week default
+              if (options?.sameSite) cookie += `; samesite=${options.sameSite}`
+              if (options?.secure) cookie += '; secure'
+              document.cookie = cookie
+            })
+          }
         },
       },
     }

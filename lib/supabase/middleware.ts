@@ -32,7 +32,9 @@ export async function updateSession(request: NextRequest) {
             supabaseResponse.cookies.set(name, value, {
               ...options,
               maxAge: maxAge,
-              httpOnly: options?.httpOnly ?? true,
+              // IMPORTANT: Don't set httpOnly for Supabase cookies
+              // The browser client needs to read them
+              httpOnly: false,
               sameSite: options?.sameSite ?? 'lax',
               secure: options?.secure ?? process.env.NODE_ENV === 'production',
             })
@@ -83,6 +85,12 @@ export async function updateSession(request: NextRequest) {
   //    return myNewResponse
   // If this is not done, you may be causing the browser and server to go out
   // of sync and terminate the user's session prematurely.
+
+  // Prevent browser from caching authenticated pages
+  // This ensures cookies are sent fresh on every request
+  supabaseResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  supabaseResponse.headers.set('Pragma', 'no-cache')
+  supabaseResponse.headers.set('Expires', '0')
 
   return supabaseResponse
 }

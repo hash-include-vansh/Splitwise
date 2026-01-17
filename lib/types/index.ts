@@ -70,7 +70,10 @@ export interface GroupInvite {
 export interface RawBalance {
   from_user_id: string
   to_user_id: string
-  amount: number
+  amount: number  // Current outstanding amount (after payments)
+  originalAmount?: number  // Original amount before payments
+  paidAmount?: number  // Amount that has been paid
+  isSettled?: boolean  // True if fully paid
   from_user?: User
   to_user?: User
 }
@@ -78,7 +81,10 @@ export interface RawBalance {
 export interface SimplifiedDebt {
   from_user_id: string
   to_user_id: string
-  amount: number
+  amount: number  // Current outstanding amount
+  originalAmount?: number  // Original amount before payments
+  paidAmount?: number  // Amount that has been paid
+  isSettled?: boolean  // True if fully paid
   from_user?: User
   to_user?: User
 }
@@ -87,5 +93,54 @@ export interface UserNetBalance {
   user_id: string
   net_balance: number
   user?: User
+}
+
+export type PaymentStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface Payment {
+  id: string
+  group_id: string
+  debtor_id: string
+  creditor_id: string
+  amount: number
+  status: PaymentStatus
+  marked_by: string
+  accepted_by: string | null
+  created_at: string
+  updated_at: string
+  debtor?: User
+  creditor?: User
+  marked_by_user?: User
+  accepted_by_user?: User
+}
+
+export interface Friendship {
+  id: string
+  user1_id: string
+  user2_id: string
+  created_at: string
+  user1?: User
+  user2?: User
+}
+
+export type NotificationType = 
+  | 'group_created' 
+  | 'group_joined' 
+  | 'expense_added' 
+  | 'payment_pending' 
+  | 'payment_accepted' 
+  | 'payment_rejected' 
+  | 'friend_added' 
+  | 'group_settled'
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  message: string
+  metadata: Record<string, any>
+  read: boolean
+  created_at: string
 }
 

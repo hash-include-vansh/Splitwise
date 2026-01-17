@@ -3,8 +3,13 @@
 import { useState } from 'react'
 import { CreateGroupModal } from './CreateGroupModal'
 import { Plus } from 'lucide-react'
+import type { User } from '@supabase/supabase-js'
 
-export function CreateGroupButton() {
+interface CreateGroupButtonProps {
+  initialUser?: User | null
+}
+
+export function CreateGroupButton({ initialUser }: CreateGroupButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -16,7 +21,7 @@ export function CreateGroupButton() {
         <Plus className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:rotate-90 duration-200" />
         <span>Create Group</span>
       </button>
-      <CreateGroupModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <CreateGroupModal isOpen={isOpen} onClose={() => setIsOpen(false)} initialUser={initialUser} />
     </>
   )
 }
