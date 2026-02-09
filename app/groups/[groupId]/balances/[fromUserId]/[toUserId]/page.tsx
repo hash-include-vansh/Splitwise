@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import type { Expense } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { PaymentStatus } from '@/components/balances/PaymentStatus'
-import { SimplificationExplainer } from '@/components/balances/SimplificationExplainer'
 
 interface BalanceContribution {
   expense: Expense
@@ -16,15 +15,9 @@ interface BalanceContribution {
 
 export default function BalanceDetailPage() {
   const params = useParams()
-  const searchParams = useSearchParams()
-  const router = useRouter()
   const groupId = params.groupId as string
   const fromUserId = params.fromUserId as string
   const toUserId = params.toUserId as string
-  
-  // Get the expected amount from URL (from simplified/raw balance view)
-  const urlAmount = searchParams.get('amount')
-  const expectedAmount = urlAmount ? parseFloat(urlAmount) : null
 
   const [contributions, setContributions] = useState<BalanceContribution[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +25,8 @@ export default function BalanceDetailPage() {
   const [fromUser, setFromUser] = useState<any>(null)
   const [toUser, setToUser] = useState<any>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [totalAmount, setTotalAmount] = useState(0)
+  const [rawTotal, setRawTotal] = useState(0) // Raw total from direct expenses (before payments)
+  const [paidTotal, setPaidTotal] = useState(0) // Total accepted payments
 
   useEffect(() => {
     async function fetchData() {
@@ -42,7 +36,7 @@ export default function BalanceDetailPage() {
       try {
         const supabase = createClient()
 
-        // Get current user from server API (more reliable than client-side cookies)
+        // Get current user
         const userResponse = await fetch('/api/user')
         const userData = await userResponse.json()
         setCurrentUserId(userData.user?.id || null)
@@ -53,21 +47,23 @@ export default function BalanceDetailPage() {
           .select('*')
           .in('id', [fromUserId, toUserId])
 
-        const fromUserData = users?.find(u => u.id === fromUserId)
-        const toUserData = users?.find(u => u.id === toUserId)
+        const fromUserData = users?.find((u) => u.id === fromUserId)
+        const toUserData = users?.find((u) => u.id === toUserId)
         setFromUser(fromUserData)
         setToUser(toUserData)
 
         // Get all expenses for this group
         const { data: expenses, error: expensesError } = await supabase
           .from('expenses')
-          .select(`
+          .select(
+            `
             *,
             splits:expense_splits (
               *,
               user:users (*)
             )
-          `)
+          `
+          )
           .eq('group_id', groupId)
           .order('created_at', { ascending: false })
 
@@ -90,9 +86,6 @@ export default function BalanceDetailPage() {
         const userMap = new Map(paidByUsers?.map((u: any) => [u.id, u]) || [])
 
         // Calculate contributions
-        // Balance: from_user owes to_user
-        // Positive contribution = from_user owes more (increases debt)
-        // Negative contribution = to_user owes from_user (decreases debt)
         const contributionsList: BalanceContribution[] = []
         let total = 0
 
@@ -100,7 +93,6 @@ export default function BalanceDetailPage() {
           const payerId = expense.paid_by
           const splits = expense.splits || []
 
-          // Find splits for both users
           const fromUserSplit = splits.find((s: any) => s.user_id === fromUserId)
           const toUserSplit = splits.find((s: any) => s.user_id === toUserId)
 
@@ -125,7 +117,7 @@ export default function BalanceDetailPage() {
 
           // Case 2: from_user paid, to_user owes (decreases debt)
           if (payerId === fromUserId && toUserSplit) {
-            const contribution = -toUserSplit.owed_amount // Negative because it reduces the debt
+            const contribution = -toUserSplit.owed_amount
             if (Math.abs(contribution) > 0.01) {
               total += contribution
               contributionsList.push({
@@ -144,12 +136,32 @@ export default function BalanceDetailPage() {
         })
 
         // Sort by date (newest first)
-        contributionsList.sort((a, b) => 
-          new Date(b.expense.created_at).getTime() - new Date(a.expense.created_at).getTime()
+        contributionsList.sort(
+          (a, b) =>
+            new Date(b.expense.created_at).getTime() - new Date(a.expense.created_at).getTime()
         )
 
+        // Get accepted payments
+        let paid = 0
+        try {
+          const { data: payments } = await supabase
+            .from('payments')
+            .select('amount')
+            .eq('group_id', groupId)
+            .eq('debtor_id', fromUserId)
+            .eq('creditor_id', toUserId)
+            .eq('status', 'accepted')
+
+          if (payments) {
+            paid = payments.reduce((sum: number, p: any) => sum + p.amount, 0)
+          }
+        } catch {
+          // payments table may not exist
+        }
+
         setContributions(contributionsList)
-        setTotalAmount(total) // Store actual total (positive = from_user owes to_user)
+        setRawTotal(Math.max(0, total)) // Raw balance from expenses
+        setPaidTotal(paid)
       } catch (err: any) {
         setError(err?.message || 'Failed to load balance details')
       } finally {
@@ -176,15 +188,15 @@ export default function BalanceDetailPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-5xl">
-        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-red-700">
-          {error}
-        </div>
+        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-red-700">{error}</div>
       </div>
     )
   }
 
   const fromUserName = fromUser?.name || fromUser?.email || 'Unknown'
   const toUserName = toUser?.name || toUser?.email || 'Unknown'
+  const remainingBalance = Math.max(0, rawTotal - paidTotal)
+  const isFullySettled = remainingBalance <= 0.01 && paidTotal > 0.01
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-5xl">
@@ -198,40 +210,55 @@ export default function BalanceDetailPage() {
           Back to Balances
         </Link>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
-            Balance Breakdown
+          <h1
+            className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 tracking-tight"
+            style={{ letterSpacing: '-0.02em' }}
+          >
+            Balance Details
           </h1>
           <p className="text-base sm:text-lg font-semibold text-gray-700 mb-1">
-            <span className="font-bold text-gray-900">{fromUserName}</span> owes{' '}
+            <span className="font-bold text-gray-900">{fromUserName}</span>
+            {isFullySettled ? ' settled with ' : ' owes '}
             <span className="font-bold text-gray-900">{toUserName}</span>
           </p>
-          <p className="text-2xl font-black text-red-600">
-            ₹{(expectedAmount ?? Math.abs(totalAmount)).toFixed(2)}
-          </p>
+
+          {/* Summary card */}
+          <div className="mt-3 rounded-xl border border-gray-200 bg-white p-4 shadow-elegant">
+            <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+              <span>From expenses</span>
+              <span className="font-bold text-gray-900">₹{rawTotal.toFixed(2)}</span>
+            </div>
+            {paidTotal > 0.01 && (
+              <div className="flex items-center justify-between text-sm text-green-700 mb-1">
+                <span>Payments made</span>
+                <span className="font-bold">-₹{paidTotal.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="border-t border-gray-200 mt-2 pt-2 flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-900">
+                {isFullySettled ? 'Settled' : 'Remaining'}
+              </span>
+              <span
+                className={`text-xl font-black ${isFullySettled ? 'text-green-600' : 'text-red-600'}`}
+              >
+                ₹{remainingBalance.toFixed(2)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Visual explanation of debt simplification */}
-      {expectedAmount && Math.abs(expectedAmount - Math.abs(totalAmount)) > 0.01 && (
-        <SimplificationExplainer
-          groupId={groupId}
-          fromUserId={fromUserId}
-          toUserId={toUserId}
-          simplifiedAmount={expectedAmount}
-          rawAmount={Math.abs(totalAmount)}
-        />
-      )}
 
       {/* Table - Direct Expenses */}
       {contributions.length === 0 ? (
         <div className="text-center py-12 rounded-xl bg-gray-50 border border-gray-200">
-          <p className="text-gray-500">No expenses found for this balance.</p>
+          <p className="text-gray-500">No direct expenses found between these two people.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-gray-200 bg-white shadow-elegant overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h3 className="text-sm font-bold text-gray-700">📋 Direct Expenses Between {fromUserName} & {toUserName}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">These are the actual expenses where one paid and the other owes</p>
+            <h3 className="text-sm font-bold text-gray-700">
+              Expenses between {fromUserName} & {toUserName}
+            </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-full">
@@ -246,22 +273,18 @@ export default function BalanceDetailPage() {
                   <th className="text-left py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Paid By
                   </th>
-                  <th className="text-left py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    {fromUserName}&apos;s Share
-                  </th>
                   <th className="text-right py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">
-                    Owes
+                    Effect on Balance
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {contributions.map((item, index) => {
                   const isDebtIncrease = item.contribution > 0
-                  
-                  // Show who paid
-                  const paidByName = item.expense.paid_by_user?.name || item.expense.paid_by_user?.email || 'Unknown'
-                  
-                  // For the share column - show what fromUser's share was in this expense
+                  const paidByName =
+                    item.expense.paid_by_user?.name ||
+                    item.expense.paid_by_user?.email ||
+                    'Unknown'
                   const shareAmount = Math.abs(item.contribution)
 
                   return (
@@ -289,11 +312,6 @@ export default function BalanceDetailPage() {
                           {paidByName}
                         </div>
                       </td>
-                      <td className="py-2.5 px-2">
-                        <div className="text-[10px] sm:text-xs font-semibold text-gray-900">
-                          ₹{shareAmount.toFixed(2)}
-                        </div>
-                      </td>
                       <td className="py-2.5 px-2 text-right">
                         {isDebtIncrease ? (
                           <span className="text-xs sm:text-sm font-bold text-red-600 whitespace-nowrap">
@@ -311,12 +329,17 @@ export default function BalanceDetailPage() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-gray-400 bg-gray-100">
-                  <td colSpan={4} className="py-3 px-2 text-right text-xs sm:text-sm font-bold text-gray-900">
-                    Net Balance:
+                  <td
+                    colSpan={3}
+                    className="py-3 px-2 text-right text-xs sm:text-sm font-bold text-gray-900"
+                  >
+                    Balance from Expenses:
                   </td>
                   <td className="py-3 px-2 text-right">
-                    <span className={`text-xs sm:text-base md:text-lg font-black whitespace-nowrap ${totalAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      ₹{Math.abs(totalAmount).toFixed(2)}
+                    <span
+                      className={`text-xs sm:text-base md:text-lg font-black whitespace-nowrap ${rawTotal > 0 ? 'text-red-600' : 'text-green-600'}`}
+                    >
+                      ₹{rawTotal.toFixed(2)}
                     </span>
                   </td>
                 </tr>
@@ -327,15 +350,14 @@ export default function BalanceDetailPage() {
       )}
 
       {/* Payment Status and Actions */}
-      {(expectedAmount ?? Math.abs(totalAmount)) > 0.01 && (
+      {rawTotal > 0.01 && (
         <PaymentStatus
           groupId={groupId}
           fromUserId={fromUserId}
           toUserId={toUserId}
-          amount={expectedAmount ?? Math.abs(totalAmount)}
+          amount={rawTotal}
           currentUserId={currentUserId}
           onPaymentUpdate={() => {
-            // Refresh the page data
             window.location.reload()
           }}
         />

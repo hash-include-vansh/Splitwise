@@ -123,13 +123,19 @@ export default function BalancesPage() {
       </div>
 
       {simplified ? (
-        <SimplifiedDebtView debts={simplifiedDebts} groupId={groupId} />
+        <div>
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">
+              Minimum payments needed to settle all debts
+            </p>
+          </div>
+          <SimplifiedDebtView debts={simplifiedDebts} groupId={groupId} />
+        </div>
       ) : (
         <div>
           <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Raw Balances</h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Shows who owes whom based on all expenses
+            <p className="text-sm text-gray-600">
+              All pairwise balances between group members
             </p>
           </div>
           <RawBalanceView balances={rawBalances} currentUserId={user?.id} groupId={groupId} />

@@ -16,7 +16,7 @@ export function SimplifiedDebtToggle({ simplified, onToggle }: SimplifiedDebtTog
             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
         }`}
       >
-        Raw Balances
+        Who Owes Whom
       </button>
       <button
         onClick={() => onToggle(true)}
@@ -26,7 +26,7 @@ export function SimplifiedDebtToggle({ simplified, onToggle }: SimplifiedDebtTog
             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
         }`}
       >
-        Simplified
+        Settle Up
       </button>
     </div>
   )

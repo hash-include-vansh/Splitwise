@@ -40,8 +40,9 @@ export async function calculateRawBalances(
   // Get accepted payments to subtract from balances
   const acceptedPayments = await getAcceptedPayments(groupId)
 
-  // Calculate balances: payer is credited, others owe
-  const balances: Map<string, Map<string, number>> = new Map()
+  // Calculate pairwise debts: debtor → creditor (one direction only)
+  // We net opposite directions: if A owes B ₹100 and B owes A ₹30, result is A owes B ₹70
+  const pairDebts = new Map<string, number>() // "debtorId|creditorId" → amount
 
   expenses?.forEach((expense: any) => {
     const payerId = expense.paid_by
@@ -51,67 +52,71 @@ export async function calculateRawBalances(
       const oweId = split.user_id
       const amount = split.owed_amount
 
-      if (payerId === oweId) {
-        // Person paid for themselves, no balance change
-        return
-      }
+      if (payerId === oweId) return // skip self
 
-      // Initialize maps if needed
-      if (!balances.has(payerId)) {
-        balances.set(payerId, new Map())
-      }
-      if (!balances.has(oweId)) {
-        balances.set(oweId, new Map())
-      }
+      // oweId owes payerId this amount
+      // Check both directions and net them
+      const forwardKey = `${oweId}|${payerId}`
+      const reverseKey = `${payerId}|${oweId}`
 
-      const payerBalances = balances.get(payerId)!
-      const oweBalances = balances.get(oweId)!
+      const forwardAmount = pairDebts.get(forwardKey) || 0
+      const reverseAmount = pairDebts.get(reverseKey) || 0
 
-      // Payer is owed money (positive)
-      const currentPayer = payerBalances.get(oweId) || 0
-      payerBalances.set(oweId, currentPayer + amount)
-
-      // Owe person owes money (negative)
-      const currentOwe = oweBalances.get(payerId) || 0
-      oweBalances.set(payerId, currentOwe - amount)
+      // Add to the forward direction (oweId → payerId)
+      pairDebts.set(forwardKey, forwardAmount + amount)
     })
   })
 
-  // Subtract accepted payments from balances
-  // Payment: debtor paid creditor, so reduce what debtor owes to creditor
+  // Now net opposite pairs: if A→B = 100 and B→A = 30, result is A→B = 70
+  const nettedDebts = new Map<string, number>()
+  const processed = new Set<string>()
+
+  pairDebts.forEach((amount, key) => {
+    if (processed.has(key)) return
+
+    const [fromId, toId] = key.split('|')
+    const reverseKey = `${toId}|${fromId}`
+    const reverseAmount = pairDebts.get(reverseKey) || 0
+
+    processed.add(key)
+    processed.add(reverseKey)
+
+    const net = amount - reverseAmount
+    if (Math.abs(net) > 0.01) {
+      if (net > 0) {
+        nettedDebts.set(key, net)
+      } else {
+        nettedDebts.set(reverseKey, Math.abs(net))
+      }
+    }
+  })
+
+  // Build a map of accepted payments by debtor-creditor pair
+  const paymentsMap = new Map<string, number>()
   acceptedPayments.forEach((payment) => {
-    const debtorId = payment.debtor_id
-    const creditorId = payment.creditor_id
-    const amount = payment.amount
-
-    // Reduce creditor's claim on debtor
-    if (balances.has(creditorId)) {
-      const creditorBalances = balances.get(creditorId)!
-      const currentCredit = creditorBalances.get(debtorId) || 0
-      creditorBalances.set(debtorId, currentCredit - amount)
-    }
-
-    // Reduce debtor's debt to creditor
-    if (balances.has(debtorId)) {
-      const debtorBalances = balances.get(debtorId)!
-      const currentDebt = debtorBalances.get(creditorId) || 0
-      debtorBalances.set(creditorId, currentDebt + amount)
-    }
+    const key = `${payment.debtor_id}|${payment.creditor_id}`
+    const current = paymentsMap.get(key) || 0
+    paymentsMap.set(key, current + payment.amount)
   })
 
-  // Convert to RawBalance array
+  // Convert to RawBalance array with payment tracking
   const rawBalances: RawBalance[] = []
-  balances.forEach((oweMap, fromUserId) => {
-    oweMap.forEach((amount, toUserId) => {
-      if (Math.abs(amount) > 0.01) {
-        // Only include non-zero balances
-        rawBalances.push({
-          from_user_id: fromUserId,
-          to_user_id: toUserId,
-          amount: Math.round((Math.abs(amount) + Number.EPSILON) * 100) / 100,
-        })
-      }
-    })
+  nettedDebts.forEach((originalAmount, key) => {
+    const [fromUserId, toUserId] = key.split('|')
+    const paidAmount = paymentsMap.get(key) || 0
+    const remainingAmount = originalAmount - paidAmount
+    const isSettled = remainingAmount <= 0.01
+
+    if (originalAmount > 0.01) {
+      rawBalances.push({
+        from_user_id: fromUserId,
+        to_user_id: toUserId,
+        amount: Math.max(0, Math.round((remainingAmount + Number.EPSILON) * 100) / 100),
+        originalAmount: Math.round((originalAmount + Number.EPSILON) * 100) / 100,
+        paidAmount: Math.round((paidAmount + Number.EPSILON) * 100) / 100,
+        isSettled,
+      })
+    }
   })
 
   // Fetch user details
@@ -141,13 +146,38 @@ export async function calculateRawBalances(
 export async function calculateSimplifiedBalances(
   groupId: string
 ): Promise<{ data: SimplifiedDebt[] | null; error: Error | null }> {
-  // First calculate net balances
+  // Use raw pairwise balances as source of truth.
+  // Simplification is ONLY used when no payments exist yet.
+  // Once payments start, we show raw pairwise debts to avoid phantom debts.
+
+  const { data: rawBalances, error: rawError } = await calculateRawBalances(groupId)
+  if (rawError || !rawBalances) {
+    return { data: null, error: rawError || new Error('Failed to calculate balances') }
+  }
+
+  const hasAnyPayments = rawBalances.some(b => (b.paidAmount || 0) > 0.01)
+
+  if (hasAnyPayments) {
+    // Payments exist — show raw pairwise debts as-is
+    const debts: SimplifiedDebt[] = rawBalances.map(b => ({
+      from_user_id: b.from_user_id,
+      to_user_id: b.to_user_id,
+      amount: b.amount,
+      originalAmount: b.originalAmount,
+      paidAmount: b.paidAmount,
+      isSettled: b.isSettled,
+      from_user: b.from_user,
+      to_user: b.to_user,
+    }))
+    return { data: debts, error: null }
+  }
+
+  // No payments yet — use simplification algorithm
   const { data: netBalances, error: netError } = await calculateNetBalances(groupId)
   if (netError || !netBalances) {
     return { data: null, error: netError || new Error('Failed to calculate net balances') }
   }
 
-  // Simplify debts
   const simplified = simplifyDebts(netBalances)
 
   // Fetch user details
@@ -208,14 +238,23 @@ export async function calculateNetBalances(
     const payerId = expense.paid_by
     const splits = expense.splits || []
 
-    // Payer is credited with full amount
-    const currentPayer = netBalances.get(payerId) || 0
-    netBalances.set(payerId, currentPayer + expense.amount)
+    // Calculate what others owe the payer (excluding payer's own share)
+    const othersOwe = splits
+      .filter((split: any) => split.user_id !== payerId)
+      .reduce((sum: number, split: any) => sum + split.owed_amount, 0)
 
-    // Others owe their split amounts
+    // Payer is credited with what others owe them
+    const currentPayer = netBalances.get(payerId) || 0
+    netBalances.set(payerId, currentPayer + othersOwe)
+
+    // Subtract what each person owes (excluding payer's own share)
     splits.forEach((split: any) => {
       const oweId = split.user_id
       const amount = split.owed_amount
+
+      if (payerId === oweId) {
+        return
+      }
 
       const currentOwe = netBalances.get(oweId) || 0
       netBalances.set(oweId, currentOwe - amount)

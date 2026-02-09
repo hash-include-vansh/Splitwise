@@ -129,7 +129,6 @@ export async function getExpenseDetails(
   expenseId: string
 ): Promise<{ data: Expense | null; error: Error | null }> {
   const supabase = createClient()
-
   try {
     // First get the expense
     const { data: expense, error: expenseError } = await supabase
@@ -148,7 +147,6 @@ export async function getExpenseDetails(
       .select('*')
       .eq('id', expense.paid_by)
       .single()
-
     // Get splits with users
     const { data: splits } = await supabase
       .from('expense_splits')
@@ -174,4 +172,3 @@ export async function getExpenseDetails(
     return { data: null, error: new Error(err?.message || 'Failed to fetch expense details') }
   }
 }
-

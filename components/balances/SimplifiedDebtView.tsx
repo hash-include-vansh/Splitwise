@@ -44,7 +44,7 @@ export function SimplifiedDebtView({ debts, groupId }: SimplifiedDebtViewProps) 
         return (
           <Link
             key={`${debt.from_user_id}-${debt.to_user_id}-${index}`}
-            href={`/groups/${groupId}/balances/${debt.from_user_id}/${debt.to_user_id}?amount=${(debt.originalAmount || debt.amount).toFixed(2)}`}
+            href={`/groups/${groupId}/balances/${debt.from_user_id}/${debt.to_user_id}`}
             className={`block rounded-xl border p-4 shadow-elegant transition-all hover:shadow-medium cursor-pointer ${
               isSettled 
                 ? 'border-green-200 bg-green-50/50 hover:border-green-300' 
