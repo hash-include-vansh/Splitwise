@@ -1,10 +1,9 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getGroupExpenses, getExpenseDetails } from '@/lib/services/expenses-client'
-import { createExpense } from '@/lib/services/expenses-client'
+import { getGroupExpenses, getExpenseDetails, createExpense, updateExpense } from '@/lib/services/expenses-client'
 import { queryKeys } from '@/lib/queries/keys'
-import type { CreateExpenseData } from '@/lib/types'
+import type { CreateExpenseData, Expense } from '@/lib/types'
 
 export function useGroupExpenses(groupId: string) {
   return useQuery({
@@ -65,6 +64,35 @@ export function useCreateExpense() {
         queryKey: queryKeys.expenses.list(variables.group_id),
         type: 'active'
       })
+    },
+  })
+}
+
+export function useUpdateExpense() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ expenseId, data }: { expenseId: string; data: CreateExpenseData }) => {
+      const { data: expense, error } = await updateExpense(expenseId, data)
+      if (error) throw error
+      return expense
+    },
+    onSuccess: async (expense, variables) => {
+      // Invalidate and refetch expenses and balances
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.expenses.list(variables.data.group_id),
+          refetchType: 'active'
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.expenses.detail(variables.expenseId),
+          refetchType: 'active'
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.balances.all,
+          refetchType: 'active'
+        })
+      ])
     },
   })
 }

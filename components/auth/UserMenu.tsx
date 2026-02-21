@@ -71,7 +71,7 @@ export function UserMenu({ initialUser }: UserMenuProps) {
   }
 
   if (loading) {
-    return <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />
+    return <div className="h-8 w-8 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700" />
   }
 
   if (!user) {
@@ -90,7 +90,7 @@ export function UserMenu({ initialUser }: UserMenuProps) {
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-3 rounded-2xl p-1.5 pr-3 transition-all hover:bg-gray-100/80 active:scale-95"
+        className="flex items-center gap-3 rounded-2xl p-1.5 pr-3 transition-all hover:bg-gray-100/80 dark:hover:bg-gray-700/80 active:scale-95"
       >
         <Avatar
           src={avatarUrl}
@@ -99,7 +99,7 @@ export function UserMenu({ initialUser }: UserMenuProps) {
           email={user.email}
           size="sm"
         />
-        <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform duration-200 ${showMenu ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ${showMenu ? 'rotate-180' : ''}`} />
       </button>
 
       {showMenu && (
@@ -108,16 +108,16 @@ export function UserMenu({ initialUser }: UserMenuProps) {
             className="fixed inset-0 z-10"
             onClick={() => setShowMenu(false)}
           />
-          <div className="absolute right-0 z-20 mt-3 w-64 rounded-2xl bg-white shadow-xl overflow-hidden border border-gray-200/60">
-            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-              <p className="text-base font-bold text-gray-900 mb-0.5 tracking-tight" style={{ letterSpacing: '-0.01em' }}>
+          <div className="absolute right-0 z-20 mt-3 w-64 rounded-2xl bg-white dark:bg-gray-900 shadow-xl overflow-hidden border border-gray-200/60 dark:border-gray-700/60">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+              <p className="text-base font-bold text-gray-900 dark:text-gray-100 mb-0.5 tracking-tight" style={{ letterSpacing: '-0.01em' }}>
                 {displayName}
               </p>
-              <p className="text-sm text-gray-500 truncate font-medium">{user.email}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 truncate font-medium">{user.email}</p>
             </div>
             <button
               onClick={handleSignOut}
-              className="w-full px-5 py-4 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full px-5 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Sign out
             </button>

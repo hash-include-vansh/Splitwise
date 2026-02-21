@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { createGroup } from '@/lib/services/groups-client'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
@@ -9,6 +10,9 @@ import type { User as AppUser } from '@/lib/types'
 import { getFriends } from '@/lib/services/friends-client'
 import { Avatar } from '@/components/ui/Avatar'
 import { Users, X, ChevronDown, ChevronUp, Search } from 'lucide-react'
+import { EmojiPicker } from '@/components/ui/EmojiPicker'
+import { DEFAULT_GROUP_EMOJI, getRandomGroupEmoji } from '@/lib/constants/groupEmojis'
+import { modalBackdrop, modalContent } from '@/lib/animations'
 
 interface CreateGroupModalProps {
   isOpen: boolean
@@ -18,6 +22,7 @@ interface CreateGroupModalProps {
 
 export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupModalProps) {
   const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState(getRandomGroupEmoji())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [friends, setFriends] = useState<AppUser[]>([])
@@ -68,8 +73,6 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
     )
   }, [friends, friendSearchQuery])
 
-  if (!isOpen) return null
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -93,7 +96,7 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
     setError(null)
 
     try {
-      const { data, error: groupError } = await createGroup(name, user.id)
+      const { data, error: groupError } = await createGroup(name, user.id, emoji)
       if (groupError) {
         console.error('Group creation error:', groupError)
         setError(groupError.message || 'Failed to create group')
@@ -126,6 +129,7 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
       router.refresh()
       onClose()
       setName('')
+      setEmoji(getRandomGroupEmoji())
       setSelectedFriends([])
     } catch (err: any) {
       console.error('Unexpected error creating group:', err)
@@ -136,25 +140,42 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 sm:p-8 shadow-xl border border-gray-200/60">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+          initial={modalBackdrop.initial}
+          animate={modalBackdrop.animate}
+          exit={modalBackdrop.exit}
+          transition={modalBackdrop.transition}
+        >
+          <motion.div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-5 sm:p-8 shadow-xl border border-gray-200/60 dark:border-gray-700/60"
+            initial={modalContent.initial}
+            animate={modalContent.animate}
+            exit={modalContent.exit}
+            transition={modalContent.transition}
+          >
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
           Create New Group
         </h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4 sm:mb-6">
-            <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-              Group Name
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+              Group Icon & Name
             </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full rounded-xl sm:rounded-2xl border border-gray-300 bg-white px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/20 transition-all"
-              placeholder="e.g., Weekend Squad, Bali Trip..."
-            />
+            <div className="flex items-start gap-3 sm:gap-4">
+              <EmojiPicker value={emoji} onChange={setEmoji} size="md" />
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="flex-1 rounded-xl sm:rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900/20 dark:focus:ring-gray-100/20 transition-all"
+                placeholder="e.g., Weekend Squad, Bali Trip..."
+              />
+            </div>
           </div>
 
           {/* Friend Selector */}
@@ -163,7 +184,7 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
               <button
                 type="button"
                 onClick={() => setShowFriendSelector(!showFriendSelector)}
-                className="w-full flex items-center justify-between text-sm font-semibold text-gray-700 mb-2 sm:mb-3 hover:text-gray-900 transition-colors"
+                className="w-full flex items-center justify-between text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
@@ -182,17 +203,17 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
               </button>
               
               {showFriendSelector && (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-hidden">
                   {/* Search Bar */}
-                  <div className="p-2 border-b border-gray-200 bg-white">
+                  <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                       <input
                         type="text"
                         placeholder="Search friends..."
                         value={friendSearchQuery}
                         onChange={(e) => setFriendSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/20 focus:border-gray-400 placeholder:text-gray-400"
+                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900/20 dark:focus:ring-gray-100/20 focus:border-gray-400 dark:focus:border-gray-500 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                       />
                     </div>
                   </div>
@@ -200,9 +221,9 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
                   {/* Friends List */}
                   <div className="max-h-40 overflow-y-auto p-2 space-y-1">
                     {loadingFriends ? (
-                      <p className="text-sm text-gray-500 text-center py-4">Loading friends...</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Loading friends...</p>
                     ) : filteredFriends.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                         {friendSearchQuery ? 'No matches found' : 'No friends yet'}
                       </p>
                     ) : (
@@ -211,8 +232,8 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
                           key={friend.id}
                           className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
                             selectedFriends.includes(friend.id)
-                              ? 'bg-gray-900 text-white'
-                              : 'hover:bg-gray-100'
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                              : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                           }`}
                         >
                           <input
@@ -230,7 +251,7 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
                           />
                           <div className="flex-1 min-w-0">
                             <p className={`text-sm font-medium truncate ${
-                              selectedFriends.includes(friend.id) ? 'text-white' : 'text-gray-900'
+                              selectedFriends.includes(friend.id) ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-gray-100'
                             }`}>
                               {friend.name || friend.email || 'Unknown'}
                             </p>
@@ -251,13 +272,13 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
                     return (
                       <span
                         key={friendId}
-                        className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
+                        className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300"
                       >
                         {friend.name || friend.email}
                         <button
                           type="button"
                           onClick={() => toggleFriend(friendId)}
-                          className="ml-1 hover:text-gray-900"
+                          className="ml-1 hover:text-gray-900 dark:hover:text-gray-100"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -267,13 +288,13 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
                 </div>
               )}
 
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 Note: Friends will be added after the group is created. You can also invite members later via invite link.
               </p>
             </div>
           )}
           {error && (
-            <div className="mb-4 sm:mb-6 rounded-xl sm:rounded-2xl bg-red-50 border border-red-200 p-3 sm:p-4 text-sm text-red-700">
+            <div className="mb-4 sm:mb-6 rounded-xl sm:rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 sm:p-4 text-sm text-red-700 dark:text-red-300">
               <div className="flex items-center gap-2">
                 <svg className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -286,21 +307,23 @@ export function CreateGroupModal({ isOpen, onClose, initialUser }: CreateGroupMo
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl sm:rounded-2xl border border-gray-300 bg-white px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all active:scale-95"
+              className="flex-1 rounded-xl sm:rounded-2xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !name.trim()}
-              className="flex-1 rounded-xl sm:rounded-2xl bg-black px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-semibold text-white shadow-elegant hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-200"
+              className="flex-1 rounded-xl sm:rounded-2xl bg-black dark:bg-white px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-semibold text-white dark:text-gray-900 shadow-elegant hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-200"
             >
               {loading ? 'Creating...' : 'Create Group'}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+          </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 

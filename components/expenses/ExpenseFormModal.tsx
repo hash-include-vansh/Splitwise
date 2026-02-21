@@ -6,6 +6,7 @@ import { useCreateExpense } from '@/hooks/useExpenses'
 import { SplitTypeSelector } from './SplitTypeSelector'
 import { SplitConfigurator } from './SplitConfigurator'
 import { validateSplits, calculateEqualSplit, calculatePercentageSplit, calculateShareSplit } from '@/lib/utils/splitCalculations'
+import { EXPENSE_CATEGORIES } from '@/lib/constants/categories'
 import type { GroupMember, SplitType } from '@/lib/types'
 import { X } from 'lucide-react'
 import { toast } from 'react-toastify'
@@ -21,6 +22,7 @@ interface ExpenseFormModalProps {
     amount: number
     paid_by: string
     split_type: SplitType
+    category?: string
     included_members?: string[]
     excluded_members?: string[]
     amounts?: { [userId: string]: number }
@@ -43,6 +45,7 @@ export function ExpenseFormModal({
   const [amount, setAmount] = useState(
     initialData?.amount?.toString() || ''
   )
+  const [category, setCategory] = useState(initialData?.category || 'general')
   const [paidBy, setPaidBy] = useState(
     initialData?.paid_by || currentUserId
   )
@@ -78,6 +81,7 @@ export function ExpenseFormModal({
     if (initialData && isOpen) {
       setDescription(initialData.description || '')
       setAmount(initialData.amount?.toString() || '')
+      setCategory(initialData.category || 'general')
       setPaidBy(initialData.paid_by || currentUserId)
       setSplitType(initialData.split_type || 'equal')
       setExcludedMembers(initialData.excluded_members || [])
@@ -228,6 +232,7 @@ export function ExpenseFormModal({
         group_id: groupId,
         description,
         amount: amountNum,
+        category,
         paid_by: paidBy,
         split_type: splitType,
         splits,
@@ -257,14 +262,14 @@ export function ExpenseFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4">
-      <div className="w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl bg-white p-4 sm:p-6 lg:p-8 shadow-xl border-0 sm:border border-gray-200/60 overflow-y-auto">
+      <div className="w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 shadow-xl dark:shadow-none border-0 sm:border border-gray-200/60 dark:border-gray-700/60 overflow-y-auto">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
             Review Expense
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -273,7 +278,34 @@ export function ExpenseFormModal({
 
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
           <div>
-            <label htmlFor="modal-description" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+              Category
+            </label>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {EXPENSE_CATEGORIES.map((cat) => {
+                const Icon = cat.icon
+                const isSelected = category === cat.key
+                return (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => setCategory(cat.key)}
+                    className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      isSelected
+                        ? `${cat.bgColor} ${cat.textColor} shadow-md scale-105`
+                        : 'bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <span className="hidden sm:inline">{cat.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="modal-description" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
               Description
             </label>
             <input
@@ -282,13 +314,13 @@ export function ExpenseFormModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
-              className="w-full rounded-lg sm:rounded-xl border-2 border-gray-300 bg-white px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base text-gray-900 placeholder:text-gray-500 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all shadow-sm"
+              className="w-full rounded-lg sm:rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 transition-all shadow-sm dark:shadow-none"
               placeholder="e.g., Pizza night, Uber ride, Coffee break..."
             />
           </div>
 
           <div>
-            <label htmlFor="modal-amount" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+            <label htmlFor="modal-amount" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
               Amount
             </label>
             <input
@@ -299,13 +331,13 @@ export function ExpenseFormModal({
               required
               min="0.01"
               step="0.01"
-              className="w-full rounded-lg sm:rounded-xl border-2 border-gray-300 bg-white px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base text-gray-900 placeholder:text-gray-500 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all shadow-sm"
+              className="w-full rounded-lg sm:rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-500 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 transition-all shadow-sm dark:shadow-none"
               placeholder="0.00"
             />
           </div>
 
           <div>
-            <label htmlFor="modal-paidBy" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+            <label htmlFor="modal-paidBy" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
               Paid by
             </label>
             <select
@@ -313,7 +345,7 @@ export function ExpenseFormModal({
               value={paidBy}
               onChange={(e) => setPaidBy(e.target.value)}
               required
-              className="w-full rounded-lg sm:rounded-xl border-2 border-gray-300 bg-white px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all shadow-sm"
+              className="w-full rounded-lg sm:rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base text-gray-900 dark:text-gray-100 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 transition-all shadow-sm dark:shadow-none"
             >
               {members.map((member) => (
                 <option key={member.user_id} value={member.user_id}>
@@ -336,7 +368,7 @@ export function ExpenseFormModal({
           />
 
           {error && (
-            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700 border-2 border-red-200/60 ring-2 ring-red-100/50">
+            <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-400 border-2 border-red-200/60 dark:border-red-800/60 ring-2 ring-red-100/50 dark:ring-red-900/50">
               {error}
             </div>
           )}
@@ -345,14 +377,14 @@ export function ExpenseFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg sm:rounded-xl border-2 border-gray-300 bg-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all active:scale-[0.98] shadow-sm"
+              className="flex-1 rounded-lg sm:rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 transition-all active:scale-[0.98] shadow-sm dark:shadow-none"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !description.trim() || !amount}
-              className="flex-1 rounded-lg sm:rounded-xl bg-black px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all active:scale-[0.98]"
+              className="flex-1 rounded-lg sm:rounded-xl bg-black dark:bg-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white dark:text-gray-900 shadow-md hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all active:scale-[0.98]"
             >
               {loading ? 'Creating...' : 'Create Expense'}
             </button>

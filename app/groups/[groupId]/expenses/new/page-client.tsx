@@ -34,7 +34,7 @@ export function NewExpensePageClient({
         <div className="mb-4 sm:mb-6">
           <Link
             href={`/groups/${groupId}/expenses`}
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors mb-3 sm:mb-4"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-3 sm:mb-4"
           >
             <svg className="h-3 w-3 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -43,10 +43,10 @@ export function NewExpensePageClient({
           </Link>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-1 sm:mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 dark:text-gray-100 mb-1 sm:mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
                 Add New Expense
               </h1>
-              <p className="text-xs sm:text-sm lg:text-base text-gray-600 font-medium">
+              <p className="text-xs sm:text-sm lg:text-base text-gray-600 dark:text-gray-400 font-medium">
                 Who&apos;s paying? Let&apos;s split it up!
               </p>
             </div>
@@ -60,7 +60,7 @@ export function NewExpensePageClient({
           </div>
         </div>
         <div className="max-w-2xl">
-          <div className="rounded-xl sm:rounded-2xl border border-gray-300 sm:border-2 bg-white p-4 sm:p-6 lg:p-8 shadow-lg sm:shadow-xl">
+          <div className="rounded-xl sm:rounded-2xl border border-gray-300 dark:border-gray-700 sm:border-2 bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 shadow-lg sm:shadow-xl dark:shadow-none">
             <ExpenseForm
               groupId={groupId}
               members={members}

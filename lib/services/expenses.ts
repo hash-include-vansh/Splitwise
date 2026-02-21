@@ -38,6 +38,7 @@ export async function createExpense(
       paid_by: data.paid_by,
       amount: data.amount,
       description: data.description,
+      category: data.category || 'general',
     })
     .select()
     .single()
@@ -58,6 +59,77 @@ export async function createExpense(
   if (splitsError) {
     // Rollback expense creation
     await supabase.from('expenses').delete().eq('id', expense.id)
+    return { data: null, error: splitsError }
+  }
+
+  return { data: expense as Expense, error: null }
+}
+
+export async function updateExpense(
+  expenseId: string,
+  data: CreateExpenseData
+): Promise<{ data: Expense | null; error: Error | null }> {
+  const supabase = await createClient()
+
+  // Normalize splits based on type
+  const splits = normalizeSplits(data.split_type, data.amount, {
+    memberIds: data.splits.map((s) => s.user_id),
+    amounts: data.split_type === 'unequal'
+      ? Object.fromEntries(data.splits.map((s) => [s.user_id, s.owed_amount]))
+      : undefined,
+    percentages:
+      data.split_type === 'percentage'
+        ? Object.fromEntries(data.splits.map((s) => [s.user_id, s.owed_amount]))
+        : undefined,
+    shares:
+      data.split_type === 'shares'
+        ? Object.fromEntries(data.splits.map((s) => [s.user_id, s.owed_amount]))
+        : undefined,
+    excludedIds: data.excluded_members,
+  })
+
+  // Validate splits
+  const validation = validateSplits(data.amount, splits)
+  if (!validation.valid) {
+    return { data: null, error: new Error(validation.error || 'Invalid splits') }
+  }
+
+  // Update expense
+  const { data: expense, error: expenseError } = await supabase
+    .from('expenses')
+    .update({
+      paid_by: data.paid_by,
+      amount: data.amount,
+      description: data.description,
+      category: data.category || 'general',
+    })
+    .eq('id', expenseId)
+    .select()
+    .single()
+
+  if (expenseError || !expense) {
+    return { data: null, error: expenseError || new Error('Failed to update expense') }
+  }
+
+  // Delete old splits and insert new ones
+  const { error: deleteError } = await supabase
+    .from('expense_splits')
+    .delete()
+    .eq('expense_id', expenseId)
+
+  if (deleteError) {
+    return { data: null, error: deleteError }
+  }
+
+  const { error: splitsError } = await supabase.from('expense_splits').insert(
+    splits.map((split) => ({
+      expense_id: expenseId,
+      user_id: split.user_id,
+      owed_amount: split.owed_amount,
+    }))
+  )
+
+  if (splitsError) {
     return { data: null, error: splitsError }
   }
 

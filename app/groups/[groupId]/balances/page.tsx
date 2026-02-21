@@ -78,8 +78,8 @@ export default function BalancesPage() {
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-800"></div>
-            <p className="mt-4 text-sm text-gray-500">Loading balances...</p>
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 dark:border-gray-700 border-t-gray-800 dark:border-t-gray-200"></div>
+            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading balances...</p>
           </div>
         </div>
       </div>
@@ -89,7 +89,7 @@ export default function BalancesPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-red-700">
+        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 text-red-700 dark:text-red-400">
           <div className="flex items-center gap-2">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -106,14 +106,14 @@ export default function BalancesPage() {
       <div className="mb-6 sm:mb-8">
         <Link
           href={`/groups/${groupId}`}
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors mb-4"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-4"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Group
         </Link>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-3 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 dark:text-gray-100 mb-3 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
           Balances
         </h1>
       </div>
@@ -125,16 +125,16 @@ export default function BalancesPage() {
       {simplified ? (
         <div>
           <div className="mb-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Minimum payments needed to settle all debts
             </p>
           </div>
-          <SimplifiedDebtView debts={simplifiedDebts} groupId={groupId} />
+          <SimplifiedDebtView debts={simplifiedDebts} groupId={groupId} currentUserId={user?.id} />
         </div>
       ) : (
         <div>
           <div className="mb-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               All pairwise balances between group members
             </p>
           </div>

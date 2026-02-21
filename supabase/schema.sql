@@ -14,9 +14,14 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS groups (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
+  emoji TEXT DEFAULT NULL,
   created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migration: Add emoji column to existing groups table
+-- Run this if the table already exists:
+-- ALTER TABLE groups ADD COLUMN IF NOT EXISTS emoji TEXT DEFAULT NULL;
 
 -- Group members table
 CREATE TABLE IF NOT EXISTS group_members (
@@ -35,9 +40,14 @@ CREATE TABLE IF NOT EXISTS expenses (
   paid_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   amount NUMERIC(10, 2) NOT NULL CHECK (amount > 0),
   description TEXT NOT NULL,
+  category TEXT DEFAULT 'general',
   simplified BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migration: Add category column to existing expenses table
+-- Run this if the table already exists:
+-- ALTER TABLE expenses ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general';
 
 -- Expense splits table
 CREATE TABLE IF NOT EXISTS expense_splits (

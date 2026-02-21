@@ -45,8 +45,23 @@ export default async function RootLayout({
   } = await supabase.auth.getUser()
 
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-gradient-to-br from-white via-gray-50/50 to-gray-100/30 antialiased font-sans">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  var isDark = theme === 'dark' || (!theme || theme === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (isDark) document.documentElement.classList.add('dark');
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-gradient-to-br from-white via-gray-50/50 to-gray-100/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 antialiased font-sans">
         <Providers>
           <Navbar initialUser={user} />
           <main className="pb-20 md:pb-8">{children}</main>

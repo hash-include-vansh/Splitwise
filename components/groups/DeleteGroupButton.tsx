@@ -65,18 +65,18 @@ export function DeleteGroupButton({ groupId, groupName }: DeleteGroupButtonProps
 
   if (showConfirm) {
     return (
-      <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
-        <p className="text-sm font-medium text-red-900">
+      <div className="space-y-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+        <p className="text-sm font-medium text-red-900 dark:text-red-300">
           Are you sure you want to delete &quot;{groupName}&quot;?
         </p>
-        <p className="text-xs text-red-700">
+        <p className="text-xs text-red-700 dark:text-red-400">
           This will permanently delete the group and all its expenses. This action cannot be undone.
         </p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowConfirm(false)}
             disabled={loading}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
           >
             Cancel
           </button>

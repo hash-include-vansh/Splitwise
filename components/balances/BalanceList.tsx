@@ -9,7 +9,7 @@ export function BalanceList({ balances }: BalanceListProps) {
   if (balances.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">All settled up! No balances to display.</p>
+        <p className="text-gray-500 dark:text-gray-500">All settled up! No balances to display.</p>
       </div>
     )
   }

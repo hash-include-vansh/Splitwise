@@ -10,6 +10,8 @@ interface SplitConfiguratorProps {
   onExcludedMembersChange: (members: string[]) => void
 }
 
+const inputClasses = "mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+
 export function SplitConfigurator({
   splitType,
   amount,
@@ -49,7 +51,7 @@ export function SplitConfigurator({
   const calculatePreview = (userId: string) => {
     const isExcluded = excludedMembers.includes(userId)
     if (isExcluded) return '0.00'
-    
+
     if (splitType === 'equal') {
       const availableCount = members.filter(m => !excludedMembers.includes(m.user_id)).length
       return amount > 0 && availableCount > 0 ? (amount / availableCount).toFixed(2) : '0.00'
@@ -104,7 +106,7 @@ export function SplitConfigurator({
   return (
     <div className="space-y-3 sm:space-y-4">
       <div>
-        <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Split Configuration
         </label>
         <div className="space-y-2">
@@ -116,19 +118,19 @@ export function SplitConfigurator({
               <div
                 key={member.user_id}
                 className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl border-2 p-2.5 sm:p-3 transition-all ${
-                  isExcluded 
-                    ? 'border-gray-300/60 bg-gradient-to-br from-gray-100 to-gray-200/50 opacity-60' 
-                    : 'border-gray-300 bg-white shadow-medium hover:shadow-large hover:border-gray-500'
+                  isExcluded
+                    ? 'border-gray-300/60 dark:border-gray-700/60 bg-gradient-to-br from-gray-100 to-gray-200/50 dark:from-gray-800 dark:to-gray-700/50 opacity-60'
+                    : 'border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-medium hover:shadow-large hover:border-gray-500 dark:hover:border-gray-500'
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={!isExcluded}
                   onChange={() => handleExcludeToggle(member.user_id)}
-                  className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-gray-300 text-gray-700 focus:ring-gray-500 focus:ring-offset-0 flex-shrink-0"
+                  className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:ring-gray-500 dark:focus:ring-gray-400 focus:ring-offset-0 flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className={`font-medium text-xs sm:text-sm truncate ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
+                  <div className={`font-medium text-xs sm:text-sm truncate ${isExcluded ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
                     {user?.name || user?.email || 'Unknown'}
                     {isExcluded && ' (excluded)'}
                   </div>
@@ -140,7 +142,7 @@ export function SplitConfigurator({
                       disabled={isExcluded}
                       min="0"
                       step="0.01"
-                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      className={inputClasses}
                       placeholder="Enter amount"
                     />
                   )}
@@ -153,7 +155,7 @@ export function SplitConfigurator({
                       min="0"
                       max="100"
                       step="0.1"
-                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      className={inputClasses}
                       placeholder="Enter %"
                     />
                   )}
@@ -165,17 +167,17 @@ export function SplitConfigurator({
                       disabled={isExcluded}
                       min="0"
                       step="0.1"
-                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition-all"
+                      className={inputClasses}
                       placeholder="Enter shares"
                     />
                   )}
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className={`text-xs sm:text-sm font-medium ${isExcluded ? 'text-gray-400' : 'text-gray-900'}`}>
+                  <div className={`text-xs sm:text-sm font-medium ${isExcluded ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
                     ₹{calculatePreview(member.user_id)}
                   </div>
                   {splitType === 'percentage' && (
-                    <div className="text-[10px] sm:text-xs text-gray-500">
+                    <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                       {config.percentages?.[member.user_id] || '0'}%
                     </div>
                   )}
@@ -186,10 +188,10 @@ export function SplitConfigurator({
         </div>
       </div>
 
-          <div className="rounded-lg sm:rounded-xl bg-gray-100 border-2 border-gray-400 p-3 sm:p-4 shadow-md">
+          <div className="rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-600 p-3 sm:p-4 shadow-md dark:shadow-none">
         <div className="flex justify-between items-center text-xs sm:text-sm">
-          <span className="font-semibold text-gray-700">Total:</span>
-          <span className="font-bold text-gray-900 text-base sm:text-lg">
+          <span className="font-semibold text-gray-700 dark:text-gray-300">Total:</span>
+          <span className="font-bold text-gray-900 dark:text-gray-100 text-base sm:text-lg">
             {splitType === 'percentage' || splitType === 'shares' ? getTotal() : `₹${getTotal()}`}
           </span>
         </div>
@@ -197,4 +199,3 @@ export function SplitConfigurator({
     </div>
   )
 }
-

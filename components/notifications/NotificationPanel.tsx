@@ -100,12 +100,12 @@ export function NotificationPanel({ isOpen, onClose, userId }: NotificationPanel
       />
 
       {/* Panel */}
-      <div className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col" style={{ height: '100vh', minHeight: '100vh' }}>
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-gray-900 shadow-2xl flex flex-col" style={{ height: '100vh', minHeight: '100vh' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <Bell className="h-6 w-6 text-gray-900" />
-            <h2 className="text-xl font-bold text-gray-900 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
+            <Bell className="h-6 w-6 text-gray-900 dark:text-gray-100" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight" style={{ letterSpacing: '-0.02em' }}>
               Notifications
             </h2>
             {unreadCount > 0 && (
@@ -119,7 +119,7 @@ export function NotificationPanel({ isOpen, onClose, userId }: NotificationPanel
               <button
                 onClick={handleMarkAllAsRead}
                 disabled={markingAll}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
               >
                 {markingAll ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -131,9 +131,9 @@ export function NotificationPanel({ isOpen, onClose, userId }: NotificationPanel
             )}
             <button
               onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <X className="h-5 w-5 text-gray-600" />
+              <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
             </button>
           </div>
         </div>
@@ -148,8 +148,8 @@ export function NotificationPanel({ isOpen, onClose, userId }: NotificationPanel
 
           {!loading && notifications.length === 0 && (
             <div className="text-center py-12 px-6">
-              <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 font-medium">No notifications yet</p>
+              <Bell className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-500 font-medium">No notifications yet</p>
               <p className="text-sm text-gray-400 mt-1">
                 You&apos;ll see updates about payments, expenses, and groups here
               </p>
@@ -157,15 +157,15 @@ export function NotificationPanel({ isOpen, onClose, userId }: NotificationPanel
           )}
 
           {!loading && notifications.length > 0 && (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {notifications.map((notification) => {
                 const link = getNotificationLink(notification)
                 const icon = getNotificationIcon(notification.type)
                 
                 const content = (
                   <div
-                    className={`flex gap-3 p-4 hover:bg-gray-50 transition-colors ${
-                      !notification.read ? 'bg-blue-50/50' : ''
+                    className={`flex gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                      !notification.read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
                     }`}
                     onClick={() => {
                       if (!notification.read) {
@@ -173,19 +173,19 @@ export function NotificationPanel({ isOpen, onClose, userId }: NotificationPanel
                       }
                     }}
                   >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800/50 flex items-center justify-center text-lg">
                       {icon}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`text-sm ${!notification.read ? 'font-semibold' : 'font-medium'} text-gray-900`}>
+                        <p className={`text-sm ${!notification.read ? 'font-semibold' : 'font-medium'} text-gray-900 dark:text-gray-100`}>
                           {notification.title}
                         </p>
                         {!notification.read && (
                           <span className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">
                         {notification.message}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">

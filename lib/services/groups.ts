@@ -209,6 +209,110 @@ export async function removeMember(
   return { error }
 }
 
+export async function updateGroup(
+  groupId: string,
+  name: string,
+  requesterId: string
+): Promise<{ data: Group | null; error: Error | null }> {
+  const supabase = await createClient()
+
+  // Check if requester is admin
+  const { data: requesterMember } = await supabase
+    .from('group_members')
+    .select('role')
+    .eq('group_id', groupId)
+    .eq('user_id', requesterId)
+    .single()
+
+  if (!requesterMember || requesterMember.role !== 'admin') {
+    return { data: null, error: new Error('Only admins can update group settings') }
+  }
+
+  const { data: group, error } = await supabase
+    .from('groups')
+    .update({ name: name.trim() })
+    .eq('id', groupId)
+    .select()
+    .single()
+
+  if (error) {
+    return { data: null, error }
+  }
+
+  return { data: group as Group, error: null }
+}
+
+export async function leaveGroup(
+  groupId: string,
+  userId: string
+): Promise<{ error: Error | null }> {
+  const supabase = await createClient()
+
+  // Get all members
+  const { data: members, error: membersError } = await supabase
+    .from('group_members')
+    .select('*')
+    .eq('group_id', groupId)
+    .order('joined_at', { ascending: true })
+
+  if (membersError) {
+    return { error: membersError }
+  }
+
+  if (!members || members.length === 0) {
+    return { error: new Error('Group not found') }
+  }
+
+  const currentMember = members.find((m: any) => m.user_id === userId)
+  if (!currentMember) {
+    return { error: new Error('You are not a member of this group') }
+  }
+
+  const isAdmin = currentMember.role === 'admin'
+  const isLastMember = members.length === 1
+
+  // If last member, delete the group entirely
+  if (isLastMember) {
+    const { error: deleteError } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', groupId)
+
+    return { error: deleteError }
+  }
+
+  // If admin leaving and is last admin, promote the longest-standing member
+  if (isAdmin) {
+    const admins = members.filter((m: any) => m.role === 'admin')
+    if (admins.length === 1) {
+      // Find the longest-standing non-admin member
+      const nonAdminMembers = members.filter(
+        (m: any) => m.user_id !== userId && m.role !== 'admin'
+      )
+
+      if (nonAdminMembers.length > 0) {
+        const { error: promoteError } = await supabase
+          .from('group_members')
+          .update({ role: 'admin' })
+          .eq('id', nonAdminMembers[0].id)
+
+        if (promoteError) {
+          return { error: promoteError }
+        }
+      }
+    }
+  }
+
+  // Delete the member row
+  const { error: deleteError } = await supabase
+    .from('group_members')
+    .delete()
+    .eq('group_id', groupId)
+    .eq('user_id', userId)
+
+  return { error: deleteError }
+}
+
 export async function getGroupMembers(groupId: string): Promise<{ data: GroupMember[] | null; error: Error | null }> {
   const supabase = await createClient()
   

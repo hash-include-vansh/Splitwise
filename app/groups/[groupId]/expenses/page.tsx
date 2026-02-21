@@ -33,6 +33,6 @@ export default async function ExpensesPage({
     )
   }
 
-  return <ExpensesPageClient groupId={groupId} groupName={group.name} />
+  return <ExpensesPageClient groupId={groupId} groupName={group.name} currentUserId={user.id} />
 }
 

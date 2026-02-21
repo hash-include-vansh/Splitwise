@@ -25,8 +25,8 @@ export default function BalanceDetailPage() {
   const [fromUser, setFromUser] = useState<any>(null)
   const [toUser, setToUser] = useState<any>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [rawTotal, setRawTotal] = useState(0) // Raw total from direct expenses (before payments)
-  const [paidTotal, setPaidTotal] = useState(0) // Total accepted payments
+  const [rawTotal, setRawTotal] = useState(0)
+  const [paidTotal, setPaidTotal] = useState(0)
 
   useEffect(() => {
     async function fetchData() {
@@ -36,12 +36,10 @@ export default function BalanceDetailPage() {
       try {
         const supabase = createClient()
 
-        // Get current user
         const userResponse = await fetch('/api/user')
         const userData = await userResponse.json()
         setCurrentUserId(userData.user?.id || null)
 
-        // Get user details
         const { data: users } = await supabase
           .from('users')
           .select('*')
@@ -52,7 +50,6 @@ export default function BalanceDetailPage() {
         setFromUser(fromUserData)
         setToUser(toUserData)
 
-        // Get all expenses for this group
         const { data: expenses, error: expensesError } = await supabase
           .from('expenses')
           .select(
@@ -72,7 +69,6 @@ export default function BalanceDetailPage() {
           return
         }
 
-        // Get paid_by users
         const userIds = new Set<string>()
         expenses?.forEach((exp: any) => {
           userIds.add(exp.paid_by)
@@ -85,7 +81,6 @@ export default function BalanceDetailPage() {
 
         const userMap = new Map(paidByUsers?.map((u: any) => [u.id, u]) || [])
 
-        // Calculate contributions
         const contributionsList: BalanceContribution[] = []
         let total = 0
 
@@ -96,7 +91,6 @@ export default function BalanceDetailPage() {
           const fromUserSplit = splits.find((s: any) => s.user_id === fromUserId)
           const toUserSplit = splits.find((s: any) => s.user_id === toUserId)
 
-          // Case 1: to_user paid, from_user owes (increases debt)
           if (payerId === toUserId && fromUserSplit) {
             const contribution = fromUserSplit.owed_amount
             if (contribution > 0.01) {
@@ -115,7 +109,6 @@ export default function BalanceDetailPage() {
             }
           }
 
-          // Case 2: from_user paid, to_user owes (decreases debt)
           if (payerId === fromUserId && toUserSplit) {
             const contribution = -toUserSplit.owed_amount
             if (Math.abs(contribution) > 0.01) {
@@ -135,13 +128,11 @@ export default function BalanceDetailPage() {
           }
         })
 
-        // Sort by date (newest first)
         contributionsList.sort(
           (a, b) =>
             new Date(b.expense.created_at).getTime() - new Date(a.expense.created_at).getTime()
         )
 
-        // Get accepted payments
         let paid = 0
         try {
           const { data: payments } = await supabase
@@ -160,7 +151,7 @@ export default function BalanceDetailPage() {
         }
 
         setContributions(contributionsList)
-        setRawTotal(Math.max(0, total)) // Raw balance from expenses
+        setRawTotal(Math.max(0, total))
         setPaidTotal(paid)
       } catch (err: any) {
         setError(err?.message || 'Failed to load balance details')
@@ -177,8 +168,8 @@ export default function BalanceDetailPage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-5xl">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-800"></div>
-            <p className="mt-4 text-sm text-gray-500">Loading balance details...</p>
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 dark:border-gray-700 border-t-gray-800 dark:border-t-gray-200"></div>
+            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading balance details...</p>
           </div>
         </div>
       </div>
@@ -188,7 +179,7 @@ export default function BalanceDetailPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-5xl">
-        <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-red-700">{error}</div>
+        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 text-red-700 dark:text-red-400">{error}</div>
       </div>
     )
   }
@@ -204,42 +195,42 @@ export default function BalanceDetailPage() {
       <div className="mb-6">
         <Link
           href={`/groups/${groupId}/balances`}
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors mb-4"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-4"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Balances
         </Link>
         <div>
           <h1
-            className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 tracking-tight"
+            className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-gray-100 mb-2 tracking-tight"
             style={{ letterSpacing: '-0.02em' }}
           >
             Balance Details
           </h1>
-          <p className="text-base sm:text-lg font-semibold text-gray-700 mb-1">
-            <span className="font-bold text-gray-900">{fromUserName}</span>
+          <p className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            <span className="font-bold text-gray-900 dark:text-gray-100">{fromUserName}</span>
             {isFullySettled ? ' settled with ' : ' owes '}
-            <span className="font-bold text-gray-900">{toUserName}</span>
+            <span className="font-bold text-gray-900 dark:text-gray-100">{toUserName}</span>
           </p>
 
           {/* Summary card */}
-          <div className="mt-3 rounded-xl border border-gray-200 bg-white p-4 shadow-elegant">
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+          <div className="mt-3 rounded-xl border border-gray-200/60 dark:border-gray-700/60 bg-white dark:bg-gray-900 p-4 shadow-elegant dark:shadow-none">
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
               <span>From expenses</span>
-              <span className="font-bold text-gray-900">₹{rawTotal.toFixed(2)}</span>
+              <span className="font-bold text-gray-900 dark:text-gray-100">₹{rawTotal.toFixed(2)}</span>
             </div>
             {paidTotal > 0.01 && (
-              <div className="flex items-center justify-between text-sm text-green-700 mb-1">
+              <div className="flex items-center justify-between text-sm text-green-700 dark:text-green-400 mb-1">
                 <span>Payments made</span>
                 <span className="font-bold">-₹{paidTotal.toFixed(2)}</span>
               </div>
             )}
-            <div className="border-t border-gray-200 mt-2 pt-2 flex items-center justify-between">
-              <span className="text-sm font-bold text-gray-900">
+            <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2 flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
                 {isFullySettled ? 'Settled' : 'Remaining'}
               </span>
               <span
-                className={`text-xl font-black ${isFullySettled ? 'text-green-600' : 'text-red-600'}`}
+                className={`text-xl font-black ${isFullySettled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
               >
                 ₹{remainingBalance.toFixed(2)}
               </span>
@@ -250,30 +241,30 @@ export default function BalanceDetailPage() {
 
       {/* Table - Direct Expenses */}
       {contributions.length === 0 ? (
-        <div className="text-center py-12 rounded-xl bg-gray-50 border border-gray-200">
-          <p className="text-gray-500">No direct expenses found between these two people.</p>
+        <div className="text-center py-12 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-500 dark:text-gray-400">No direct expenses found between these two people.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white shadow-elegant overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h3 className="text-sm font-bold text-gray-700">
+        <div className="rounded-xl border border-gray-200/60 dark:border-gray-700/60 bg-white dark:bg-gray-900 shadow-elegant dark:shadow-none overflow-hidden">
+          <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">
               Expenses between {fromUserName} & {toUserName}
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-full">
               <thead>
-                <tr className="border-b-2 border-gray-300 bg-gray-50">
-                  <th className="text-left py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                <tr className="border-b-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
+                  <th className="text-left py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                     Date
                   </th>
-                  <th className="text-left py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <th className="text-left py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                     Expense
                   </th>
-                  <th className="text-left py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <th className="text-left py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                     Paid By
                   </th>
-                  <th className="text-right py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">
+                  <th className="text-right py-2.5 px-2 text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                     Effect on Balance
                   </th>
                 </tr>
@@ -290,9 +281,9 @@ export default function BalanceDetailPage() {
                   return (
                     <tr
                       key={`${item.expense.id}-${index}`}
-                      className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
+                      className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
                     >
-                      <td className="py-2.5 px-2 text-[10px] sm:text-xs font-medium text-gray-600 whitespace-nowrap">
+                      <td className="py-2.5 px-2 text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {new Date(item.expense.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -300,25 +291,25 @@ export default function BalanceDetailPage() {
                         })}
                       </td>
                       <td className="py-2.5 px-2">
-                        <div className="font-semibold text-gray-900 text-[10px] sm:text-xs mb-0.5">
+                        <div className="font-semibold text-gray-900 dark:text-gray-100 text-[10px] sm:text-xs mb-0.5">
                           {item.expense.description}
                         </div>
-                        <div className="text-[9px] sm:text-[10px] text-gray-500">
+                        <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-500">
                           Total: ₹{item.expense.amount.toFixed(2)}
                         </div>
                       </td>
                       <td className="py-2.5 px-2">
-                        <div className="text-[10px] sm:text-xs font-medium text-gray-900 truncate max-w-[80px] sm:max-w-none">
+                        <div className="text-[10px] sm:text-xs font-medium text-gray-900 dark:text-gray-100 truncate max-w-[80px] sm:max-w-none">
                           {paidByName}
                         </div>
                       </td>
                       <td className="py-2.5 px-2 text-right">
                         {isDebtIncrease ? (
-                          <span className="text-xs sm:text-sm font-bold text-red-600 whitespace-nowrap">
+                          <span className="text-xs sm:text-sm font-bold text-red-600 dark:text-red-400 whitespace-nowrap">
                             +₹{shareAmount.toFixed(2)}
                           </span>
                         ) : (
-                          <span className="text-xs sm:text-sm font-bold text-green-600 whitespace-nowrap">
+                          <span className="text-xs sm:text-sm font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
                             -₹{shareAmount.toFixed(2)}
                           </span>
                         )}
@@ -328,16 +319,16 @@ export default function BalanceDetailPage() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-gray-400 bg-gray-100">
+                <tr className="border-t-2 border-gray-400 dark:border-gray-600 bg-gray-100 dark:bg-gray-800">
                   <td
                     colSpan={3}
-                    className="py-3 px-2 text-right text-xs sm:text-sm font-bold text-gray-900"
+                    className="py-3 px-2 text-right text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100"
                   >
                     Balance from Expenses:
                   </td>
                   <td className="py-3 px-2 text-right">
                     <span
-                      className={`text-xs sm:text-base md:text-lg font-black whitespace-nowrap ${rawTotal > 0 ? 'text-red-600' : 'text-green-600'}`}
+                      className={`text-xs sm:text-base md:text-lg font-black whitespace-nowrap ${rawTotal > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}
                     >
                       ₹{rawTotal.toFixed(2)}
                     </span>

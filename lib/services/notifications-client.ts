@@ -71,3 +71,30 @@ export async function getUnreadCount(
   return { count: count || 0, error }
 }
 
+export async function createReminder(
+  debtorId: string,
+  creditorName: string,
+  amount: number,
+  groupId: string
+): Promise<{ data: Notification | null; error: Error | null }> {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .insert({
+      user_id: debtorId,
+      type: 'payment_reminder',
+      title: 'Payment Reminder',
+      message: `${creditorName} is reminding you to pay ₹${amount.toFixed(2)}`,
+      metadata: { groupId, amount, creditorName },
+    })
+    .select('*')
+    .single()
+
+  if (error) {
+    return { data: null, error }
+  }
+
+  return { data: data as Notification, error: null }
+}
+

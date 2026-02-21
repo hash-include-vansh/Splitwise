@@ -86,7 +86,7 @@ export function DeleteExpenseButton({ expenseId, groupId }: DeleteExpenseButtonP
         <button
           onClick={() => setShowConfirm(false)}
           disabled={loading}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
         >
           Cancel
         </button>

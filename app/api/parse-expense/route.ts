@@ -95,28 +95,45 @@ Parse the command and extract the following information:
 
 2. **Amount**: The expense amount in rupees (extract just the number, e.g., 500 from "Rs.500", "₹500", "500 rupees", "500 Rs", "five hundred rupees")
 
-3. **Paid By**: The user ID of the person who paid for this expense
+3. **Category**: Automatically detect the best-fitting category based on the expense description and context. Choose ONE from these exact keys:
+   - "food" — restaurants, dining out, pizza, burgers, biryani, zomato, swiggy, meals
+   - "groceries" — supermarket, vegetables, fruits, grocery store, provisions, bigbasket
+   - "transport" — uber, ola, cab, taxi, auto, rickshaw, bus, train, metro, fuel, petrol, diesel
+   - "shopping" — clothes, shoes, electronics, amazon, flipkart, mall, retail
+   - "entertainment" — movies, cinema, netflix, spotify, concert, gaming, amusement
+   - "utilities" — electricity, water, wifi, internet, gas, phone bill, recharge
+   - "rent" — house rent, apartment, flat, PG, hostel, accommodation
+   - "travel" — flight, hotel, trip, vacation, booking, airbnb, train tickets for travel
+   - "health" — medicine, doctor, hospital, pharmacy, gym, fitness
+   - "coffee" — coffee, starbucks, cafe, chai, tea
+   - "drinks" — beer, wine, cocktails, bar, pub, alcohol, liquor
+   - "subscriptions" — monthly subscriptions, memberships, SaaS, premium plans
+   - "gifts" — birthday gift, present, surprise, celebration
+   - "other" — anything that doesn't clearly fit above
+   - "general" — only use if absolutely no category signal is present
+
+4. **Paid By**: The user ID of the person who paid for this expense
    - If mentioned explicitly (e.g., "I paid", "Vansh paid", "paid by me"), match the name/email to the member ID
    - If not mentioned, default to currentUserId: "${currentUserId}"
    - Match names case-insensitively and partially (e.g., "Vibhor" matches "Vibhor Kumar", "vibhor")
 
-4. **Split Type**: One of "equal", "unequal", "percentage", or "shares"
+5. **Split Type**: One of "equal", "unequal", "percentage", or "shares"
    - Default to "equal" if not specified
    - Use "unequal" if specific amounts are mentioned for different people
    - Use "percentage" if percentages are mentioned
    - Use "shares" if shares/portions are mentioned
 
-5. **Included Members**: Array of user IDs to include in the split
+6. **Included Members**: Array of user IDs to include in the split
    - By default, include ALL members EXCEPT explicitly excluded ones
    - If specific people are mentioned (e.g., "split between Vansh and Vibhor"), only include those
    - Always include the person who paid (paid_by) unless explicitly excluded
 
-6. **Excluded Members**: Array of user IDs to exclude from the split
+7. **Excluded Members**: Array of user IDs to exclude from the split
    - Look for exclusion keywords: "except", "without", "excluding", "not including", "don't include"
    - Match names case-insensitively and partially
    - Example: "except Vibhor" → exclude Vibhor's user ID
 
-7. **Amounts/Percentages/Shares**: Only include if split type requires them
+8. **Amounts/Percentages/Shares**: Only include if split type requires them
    - For "unequal": { "user-id": amount }
    - For "percentage": { "user-id": percentage (0-100) }
    - For "shares": { "user-id": share_number }
@@ -132,6 +149,7 @@ Command: "Add this Rs.500 restaurant bill for everyone to be split equally excep
 → {
   "description": "Restaurant bill",
   "amount": 500,
+  "category": "food",
   "paid_by": "${currentUserId}",
   "split_type": "equal",
   "included_members": [all member IDs except Vibhor's],
@@ -145,6 +163,7 @@ Command: "I paid ₹1000 for groceries, split it 60-40 between me and Vansh"
 → {
   "description": "Groceries",
   "amount": 1000,
+  "category": "groceries",
   "paid_by": "${currentUserId}",
   "split_type": "percentage",
   "included_members": [currentUserId, Vansh's ID],
@@ -154,11 +173,26 @@ Command: "I paid ₹1000 for groceries, split it 60-40 between me and Vansh"
   "shares": null
 }
 
+Command: "200 rupees pizza"
+→ {
+  "description": "Pizza",
+  "amount": 200,
+  "category": "food",
+  "paid_by": "${currentUserId}",
+  "split_type": "equal",
+  "included_members": [all member IDs],
+  "excluded_members": [],
+  "amounts": null,
+  "percentages": null,
+  "shares": null
+}
+
 === OUTPUT FORMAT ===
 Return ONLY a valid JSON object with this exact structure (no markdown, no code blocks, no backticks, no explanations):
 {
   "description": "short description",
   "amount": 500,
+  "category": "food",
   "paid_by": "user-id-here",
   "split_type": "equal",
   "included_members": ["user-id-1", "user-id-2"],
@@ -249,13 +283,21 @@ Important: Return ONLY the JSON object, nothing else.`
       )
     }
 
+    // Valid category keys
+    const validCategories = [
+      'general', 'food', 'groceries', 'transport', 'shopping',
+      'entertainment', 'utilities', 'rent', 'travel', 'health',
+      'coffee', 'drinks', 'subscriptions', 'gifts', 'other',
+    ]
+
     // Validate and normalize the response
     const finalResult = {
       description: parsedData.description || 'Expense',
       amount: parseFloat(parsedData.amount) || 0,
+      category: validCategories.includes(parsedData.category) ? parsedData.category : 'general',
       paid_by: parsedData.paid_by || currentUserId,
       split_type: parsedData.split_type || 'equal',
-      included_members: Array.isArray(parsedData.included_members) 
+      included_members: Array.isArray(parsedData.included_members)
         ? parsedData.included_members.filter((id: string) => memberIdMap.has(id))
         : [],
       excluded_members: Array.isArray(parsedData.excluded_members)

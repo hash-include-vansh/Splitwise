@@ -1,10 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { getUserGroups } from '@/lib/services/groups'
-import { GroupList } from '@/components/groups/GroupList'
-import { CreateGroupButton } from '@/components/groups/CreateGroupButton'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { GroupListSkeleton } from '@/components/ui/Skeleton'
+import { GroupsPageClient } from './GroupsPageClient'
+
+// Prevent Next.js Router Cache from serving stale server component output
+// when navigating back to /groups after updating a group on another page
+export const dynamic = 'force-dynamic'
 
 async function GroupsContent() {
   const supabase = await createClient()
@@ -19,18 +22,10 @@ async function GroupsContent() {
   const { data: groups } = await getUserGroups(user.id)
 
   return (
-    <>
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-2 tracking-tight" style={{ letterSpacing: '-0.03em' }}>
-          My Groups
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600 font-medium mb-4">
-          {groups?.length || 0} {groups?.length === 1 ? 'group' : 'groups'}
-        </p>
-        <CreateGroupButton initialUser={user} />
-      </div>
-      <GroupList groups={groups || []} />
-    </>
+    <GroupsPageClient
+      initialGroups={groups || []}
+      currentUser={user}
+    />
   )
 }
 
@@ -50,10 +45,10 @@ export default async function GroupsPage() {
         <>
           <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <div className="h-10 sm:h-12 w-40 sm:w-48 bg-gray-200 animate-pulse rounded mb-2" />
-              <div className="h-5 w-24 bg-gray-200 animate-pulse rounded" />
+              <div className="h-10 sm:h-12 w-40 sm:w-48 bg-gray-200 dark:bg-gray-700 animate-pulse rounded mb-2" />
+              <div className="h-5 w-24 bg-gray-200 dark:bg-gray-700 animate-pulse rounded" />
             </div>
-            <div className="h-10 sm:h-12 w-28 sm:w-32 bg-gray-200 animate-pulse rounded" />
+            <div className="h-10 sm:h-12 w-28 sm:w-32 bg-gray-200 dark:bg-gray-700 animate-pulse rounded" />
           </div>
           <GroupListSkeleton count={5} />
         </>
@@ -63,4 +58,3 @@ export default async function GroupsPage() {
     </div>
   )
 }
-

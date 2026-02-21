@@ -35,7 +35,7 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply text-gray-900 antialiased;
+    @apply text-gray-900 dark:text-gray-100 antialiased;
     font-feature-settings: 'kern' 1;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -45,4 +45,9 @@
     @apply font-semibold tracking-tight;
     letter-spacing: -0.02em;
   }
+}
+
+/* Dark mode toast overrides */
+.dark .toast {
+  @apply border-gray-700/60;
 }

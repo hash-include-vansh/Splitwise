@@ -20,5 +20,9 @@ export const queryKeys = {
     simplified: (groupId: string) => [...queryKeys.balances.all, 'simplified', groupId] as const,
     net: (groupId: string) => [...queryKeys.balances.all, 'net', groupId] as const,
   },
+  payments: {
+    all: ['payments'] as const,
+    list: (groupId: string) => [...queryKeys.payments.all, 'list', groupId] as const,
+  },
 }
 

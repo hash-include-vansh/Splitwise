@@ -13,6 +13,7 @@ export interface CreateExpenseData {
   split_type: SplitType
   splits: ExpenseSplit[]
   excluded_members?: string[]
+  category?: string
 }
 
 export interface User {
@@ -26,6 +27,7 @@ export interface User {
 export interface Group {
   id: string
   name: string
+  emoji?: string
   created_by: string
   created_at: string
 }
@@ -45,6 +47,7 @@ export interface Expense {
   paid_by: string
   amount: number
   description: string
+  category?: string
   simplified: boolean
   created_at: string
   paid_by_user?: User
@@ -123,14 +126,15 @@ export interface Friendship {
   user2?: User
 }
 
-export type NotificationType = 
-  | 'group_created' 
-  | 'group_joined' 
-  | 'expense_added' 
-  | 'payment_pending' 
-  | 'payment_accepted' 
-  | 'payment_rejected' 
-  | 'friend_added' 
+export type NotificationType =
+  | 'group_created'
+  | 'group_joined'
+  | 'expense_added'
+  | 'payment_pending'
+  | 'payment_accepted'
+  | 'payment_rejected'
+  | 'payment_reminder'
+  | 'friend_added'
   | 'group_settled'
 
 export interface Notification {

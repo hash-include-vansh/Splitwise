@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { GroupDetails } from '@/components/groups/GroupDetails'
+import { useGroupDetails } from '@/hooks/useGroups'
 import type { Group, GroupMember } from '@/lib/types'
 import { createClient } from '@/lib/supabase/client'
+import { queryKeys } from '@/lib/queries/keys'
 
 interface GroupDetailClientProps {
   initialGroup: Group & { members: GroupMember[] }
@@ -12,72 +15,52 @@ interface GroupDetailClientProps {
 }
 
 export function GroupDetailClient({ initialGroup, currentUserId }: GroupDetailClientProps) {
-  const [group, setGroup] = useState(initialGroup)
   const router = useRouter()
+  const queryClient = useQueryClient()
+
+  // Pass initialGroup as initialData so cache is seeded immediately,
+  // and staleTime: 0 ensures a refetch on mount to pick up any settings changes
+  const { data: group } = useGroupDetails(initialGroup.id, initialGroup)
+
+  // React Query data is always available thanks to initialData, but fallback just in case
+  const currentGroup = group || initialGroup
 
   const refreshGroup = useCallback(async () => {
-    try {
-      const supabase = createClient()
-      
-      const { data: groupData, error: groupError } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('id', group.id)
-        .single()
-      
-      if (groupError) throw groupError
-      
-      const { data: members, error: membersError } = await supabase
-        .from('group_members')
-        .select(`
-          *,
-          user:users (*)
-        `)
-        .eq('group_id', group.id)
-      
-      if (membersError) throw membersError
-      
-      setGroup({
-        ...groupData,
-        members: members || []
-      })
-    } catch (err) {
-      console.error('Error refreshing group:', err)
-      // Fallback to router refresh
-      router.refresh()
-    }
-  }, [group.id, router])
+    // Invalidate React Query cache to trigger refetch
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.groups.detail(initialGroup.id),
+    })
+  }, [initialGroup.id, queryClient])
 
   const handleRemoveMember = async (userIdToRemove: string) => {
     try {
       const supabase = createClient()
-      
+
       const { error } = await supabase
         .from('group_members')
         .delete()
-        .eq('group_id', group.id)
+        .eq('group_id', initialGroup.id)
         .eq('user_id', userIdToRemove)
-      
+
       if (error) throw error
-      
-      // Refresh group data
+
+      // Refresh group data via React Query invalidation
       await refreshGroup()
     } catch (err) {
       console.error('Error removing member:', err)
     }
   }
 
-  const isAdmin = group.members.some(
+  const isAdmin = currentGroup.members.some(
     (m) => m.user_id === currentUserId && m.role === 'admin'
   )
 
   return (
     <GroupDetails
-      group={group}
+      group={currentGroup}
       currentUserId={currentUserId}
       onRemoveMember={isAdmin ? handleRemoveMember : undefined}
       onMemberAdded={refreshGroup}
     />
   )
 }
-
